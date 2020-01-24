@@ -1,0 +1,123 @@
+<html>
+<head>
+<title>Gipheaux</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: black;
+        color: white;
+        text-align: center;
+    }
+    #contents {
+        display: inline-block;
+        width: 1024px;
+        text-align: left;
+        position: relative;
+    }
+    #topnav {
+        padding: 10px;
+    }
+    #topnav a {
+        text-decoration: none;
+        color: white;
+    }
+    #topnav a.formlink {
+        margin-top: 10px;
+        margin-left: 4px;
+        float: right;
+        padding: 6px;
+        color: black;
+        background-color: darkgray;
+    }
+    #topnav h1 {
+        font-size: 45px;
+        display: inline;
+    }
+    #logo {
+        font-size: 45px;
+        background: -webkit-linear-gradient(45deg, cyan, green, yellow, magenta);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    #searchcontainer {
+        margin-top: 15px;
+    }
+    #searchcontainer input {
+        width: 950px;
+        height: 40px;
+        padding: 20px;
+        border: none;
+        font-size: 17px;
+    }
+    #searchcontainer button {
+        width: 50px;
+        height: 40px;
+        background: #ddd;
+        font-size: 22px;
+        border: none;
+        cursor: pointer;
+    }
+    #searchcontainer button:hover {
+        background: #ccc;
+    }
+    .content-border {
+      background-image: linear-gradient(45deg, cyan, purple, violet);
+      height: 10px;
+    }
+    .popupform {
+        display: none;
+        border: 1px solid white;
+        background-color: black;
+        position: absolute;
+        top: 10px;
+        right: 0px;
+    }
+    .popupform input {
+        float: right;
+        margin-left: 5px;
+    }
+    .popupform div {
+        padding: 10px;
+        clear: both;
+    }
+    .popupform .title {
+        text-align: center;
+        font-weight: bold;
+    }
+    .popupform .buttonholder {
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+<div id="contents">
+    <div id="topnav">
+        <h1><a href="/"><i id="logo" class="fa fa-camera-retro"></i> GIPHEAUX</a></h1>
+        <a href="#login" class="formlink" onClick="javascript:getElementById('loginform').style.display='block';">Log In</a>
+        <a href="#register" class="formlink" onClick="javascript:getElementById('registerform').style.display='block';">Register</a>
+    </div>
+    <div class="content-border"></div>
+    <div id="searchcontainer">
+        <form>
+            <input type="text" placeholder="Search for gifs and stuff!">
+            <button type="submit"><i class="fa fa-search"></i></button>
+        </form>
+    </div>
+    <div id="loginform" class="popupform">
+        <div class="title">Log In</div>
+        <form action="/login" method="POST">
+        <div>Username<input type="text" name="username"></div>
+        <div>Password<input type="password" name="password"></div>
+        <div class="buttonholder"><button type="submit">Log In</button></div>
+        </form>
+    </div>
+    <div id="registerform" class="popupform">
+        <div class="title">Register</div>
+        <form action="/register" method="POST">
+        <div>Username<input type="text" name="username"></div>
+        <div>Password<input type="password" name="password"></div>
+        <div class="buttonholder"><button type="submit">Register</button></div>
+        </form>
+    </div>

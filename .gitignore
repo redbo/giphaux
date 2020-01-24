@@ -1,0 +1,8 @@
+giphy-clone
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
