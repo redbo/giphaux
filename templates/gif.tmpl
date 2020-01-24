@@ -1,0 +1,71 @@
+{{template "header.tmpl" .}}
+
+<div style="margin-top: 40px;">
+    <h2 style="float: left; margin: 0px;">{{.Data.Title}}</h2>
+    <div style="float: right;">
+        {{range .Data.Tags}}
+            <a class="tag" href="/search?q=tag:{{.}}">#{{.}}</a>
+        {{end}}
+    </div>
+</div>
+<div style="text-align: center;clear: both;">
+<img src="/rawgifs/{{.Data.ID}}.gif">
+</div>
+
+<br><br>
+
+{{if .User}}
+
+    {{if .Data.UserInfo.Favorited}}
+
+        <p>
+            <form class="basicform" action="/user/updatecategories" method="POST">
+                <input type="hidden" name="gifid" value="{{.Data.ID}}">
+                {{range $key, $value := .Data.UserInfo.Categories}}
+                    <label class="tag">
+                        {{if $value}}
+                            <input type="checkbox" name="cat-{{$key}}" style="margin: 0px; padding: 0px; width: auto;" value="on" checked> {{$key}}
+                        {{else}}
+                            <input type="checkbox" name="cat-{{$key}}" style="margin: 0px; padding: 0px; width: auto;" value="on"> {{$key}}
+                        {{end}}
+                    </label>
+                {{end}}
+                <div class="row"><button type="submit">Update Categories <i class="fa fa-edit"></i></button></div>
+            </form>
+        </p>
+        <p>
+            <form class="basicform" action="/user/unfavorite" method="POST">
+                <input type="hidden" name="gifid" value="{{.Data.ID}}">
+                <div class="row"><button type="submit">Remove From Favorites <i class="fa fa-heart-o"></i></button></div>
+            </form>
+        </p>
+
+    {{else}}
+
+        <p>
+            <form class="basicform" action="/user/favorite" method="POST">
+                <input type="hidden" name="gifid" value="{{.Data.ID}}">
+                    <label class="tag">&check; favorites</label>
+                    {{range .User.Categories}}
+                        <label class="tag">
+                            <input type="checkbox" name="cat-{{.}}" style="margin: 0px; padding: 0px; width: auto;" value="on"> {{.}}
+                        </label>
+                    {{end}}
+                <div class="row"><button type="submit">Save To Favorites <i class="fa fa-heart"></i></button></div>
+            </form>
+        </p>
+
+    {{end}}
+
+    {{if .Data.UserInfo.Owner}}
+        <p>
+            <form class="basicform" action="/user/delete" method="POST">
+                <input type="hidden" name="gifid" value="{{.Data.ID}}">
+                <div class="row"><button type="submit">Delete GIF (you are the owner) <i class="fa fa-ban"></i></button></div>
+            </form>
+        </p>
+    {{end}}
+
+{{end}}
+
+{{template "footer.tmpl" .}}

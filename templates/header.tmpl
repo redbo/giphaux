@@ -66,58 +66,113 @@
       background-image: linear-gradient(45deg, cyan, purple, violet);
       height: 10px;
     }
-    .popupform {
+    .basicform {display: block; background-color: #555; padding: 15px; margin: 0px;}
+    .basicform h2 {
+        margin: 10px; text-align: center;
+        margin-top: 0px;
+    }
+    .basicform .row .field {
+        margin: 10px 0px 5px 2px;
+    }
+    .basicform input, .basicform button {
+        padding: 5px;
+        margin: 0px;
+        width: 100%;
+        border-radius: 4px;
+        border: 0px;
+        1px solid #111;
+    }
+    .basicform input[type=submit], .basicform input[type=button], .basicform button {
+        background-color: #5b6; color: white; font-weight: bold; font-size: 1.1em; cursor: pointer; margin-top: 3px;
+    }
+    #loginform, #registerform {
         display: none;
+        float: right;
         border: 1px solid white;
-        background-color: black;
         position: absolute;
         top: 10px;
+        width: 600px;
         right: 0px;
     }
-    .popupform input {
-        float: right;
-        margin-left: 5px;
+    .tag {
+        background-color: #38C;
+        padding: 5px;
+        border-radius: 5px;
+        margin: 3px;
+        text-decoration: none;
+        color: white;
+        border: 1px solid #aaa;
+        font-style: italic;
+        display: inline-block;
+        white-space: nowrap;
     }
-    .popupform div {
-        padding: 10px;
-        clear: both;
+    .tag form {
+        display: inline-block;
+        margin: 0px;
     }
-    .popupform .title {
-        text-align: center;
-        font-weight: bold;
+    .tag form button {
+        padding:0px;
+        margin-left: 10px;
+        background-color: transparent;
+        border: 0px;
+        color: lightblue;
+        cursor: pointer;
     }
-    .popupform .buttonholder {
-        text-align: center;
+    .tag form button:hover {
+        border: 0px;
+        color: white;
+        cursor: pointer;
     }
 </style>
+
+<script>
+    function copyText(id) {
+        /* Get the text field */
+        var copyText = document.getElementById(id);
+
+      /* Select the text field */
+      copyText.select();
+      copyText.setSelectionRange(0, 99999); /*For mobile devices*/
+
+      /* Copy the text inside the text field */
+      document.execCommand("copy");
+      return false;
+    }
+</script>
+
 </head>
 <body>
 <div id="contents">
+    <div id="loginform">
+        <form class="basicform" action="/login" method="post">
+            <h2>Log In</h2>
+            <div class="row"><div class="field">Username</div><input type="text" name="username"></div>
+            <div class="row"><div class="field">Password</div><input type="text" name="password"></div>
+            <div class="row"><div class="field">Submit</div><input type="submit" value="Log In &rarr;" name="submit"></div>
+        </form>
+    </div>
+    <div id="registerform">
+        <form class="basicform" action="/register" method="post">
+            <h2>Create User</h2>
+            <div class="row"><div class="field">Username</div><input type="text" name="username"></div>
+            <div class="row"><div class="field">Password</div><input type="text" name="password"></div>
+            <div class="row"><div class="field">Submit</div><input type="submit" value="Log In &rarr;" name="submit"></div>
+        </form>
+    </div>
     <div id="topnav">
-        <h1><a href="/"><i id="logo" class="fa fa-camera-retro"></i> GIPHEAUX</a></h1>
-        <a href="#login" class="formlink" onClick="javascript:getElementById('loginform').style.display='block';">Log In</a>
-        <a href="#register" class="formlink" onClick="javascript:getElementById('registerform').style.display='block';">Register</a>
+        <h1><a href="/"><i id="logo" class="fa fa-camera-retro"></i> GIPHAUX</a></h1>
+        {{if .User}}
+            <a href="/bye" class="formlink">Logout</a>
+            <a href="/user/" class="formlink">Home: {{.User.Username}}</a>
+        {{else}}
+            <a class="formlink" onClick="javascript:getElementById('loginform').style.display='block';">Log In</a>
+            <a class="formlink" onClick="javascript:getElementById('registerform').style.display='block';">Register</a>
+        {{end}}
     </div>
     <div class="content-border"></div>
     <div id="searchcontainer">
-        <form>
-            <input type="text" placeholder="Search for gifs and stuff!">
+        <form action="/search" method="GET">
+            <input name="q" type="text" placeholder="Search for gifs and stuff!" value="{{if .Data}}{{if .Query}}{{.Data.Query}}{{end}}{{end}}">
             <button type="submit"><i class="fa fa-search"></i></button>
-        </form>
-    </div>
-    <div id="loginform" class="popupform">
-        <div class="title">Log In</div>
-        <form action="/login" method="POST">
-        <div>Username<input type="text" name="username"></div>
-        <div>Password<input type="password" name="password"></div>
-        <div class="buttonholder"><button type="submit">Log In</button></div>
-        </form>
-    </div>
-    <div id="registerform" class="popupform">
-        <div class="title">Register</div>
-        <form action="/register" method="POST">
-        <div>Username<input type="text" name="username"></div>
-        <div>Password<input type="password" name="password"></div>
-        <div class="buttonholder"><button type="submit">Register</button></div>
         </form>
     </div>

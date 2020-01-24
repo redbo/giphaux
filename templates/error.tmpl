@@ -1,5 +1,7 @@
-{{template "header.tmpl"}}
+{{template "header.tmpl" .}}
 
 This is an error page!
+<br>
+{{.Msg}}
 
-{{template "footer.tmpl"}}
+{{template "footer.tmpl" .}}

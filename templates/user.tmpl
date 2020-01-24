@@ -1,5 +1,115 @@
-{{template "header.tmpl"}}
+{{template "header.tmpl" .}}
 
-USER PAGE I GUESS!
+<style>
+    .tablink {
+        background-color: #555;
+        color: white;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 10px;
+        margin: 0px 5px 0px 0px;
+        font-size: 17px;
+        width: 18%;
+    }
+    .tablink:hover {
+        background-color: #777;
+    }
+    .tabcontent {
+        color: white;
+        display: none;
+        padding: 20px;
+        border: 3px solid #555;
+        min-height: 500px;
+        clear: both;
+    }
+</style>
 
-{{template "footer.tmpl"}}
+<div>
+    <button id="tabHome" class="tablink" onclick="openPage('HomeTab', this);location.href='#Home';">Home</button>
+    <button id="tabCategories" class="tablink" onclick="openPage('CategoriesTab', this);location.href='#Categories';">Categories</button>
+    <button id="tabUpload" class="tablink" onclick="openPage('UploadTab', this);location.href='#Upload';">Upload New</button>
+    <button id="tabAPIKey" class="tablink" onclick="openPage('APIKeyTab', this);location.href='#APIKey';">API Key</button>
+</div>
+
+<div id="HomeTab" class="tabcontent">
+    {{range $key, $value := .Data.Categories}}
+        <h3>{{$key}}</h3>
+                <div style="overflow: hidden; white-space: nowrap; position: relative;">
+                <div style="position: absolute; right: 0px; width: 50px; height: 100%; background: linear-gradient(90deg, transparent, #000);"></div>
+                {{range $value}}
+                    <a href="/gifs/{{.ID}}"><img src="/rawgifs/{{.ID}}.gif" style="max-width: 200px; max-height: 200px; margin-right: 5px;"></a>
+                {{end}}
+            </div>
+    {{end}}
+</div>
+
+<div id="CategoriesTab" class="tabcontent">
+    <form class="basicform" action="/user/addcategory" method="post">
+        <h2>Add a new category!</h2>
+        <div class="row"><div class="field">Category</div><input type="text" name="category"></div>
+        <div class="row"><input type="submit" value="Submit &#8682;"></div>
+    </form>
+    <h2>Your Categories:</h3>
+    {{range .User.Categories}}
+        <i class="tag" href="/search?q=tag:{{.}}">{{.}}
+            <form action="/user/removecategory" method="POST" style="margin: 0px;">
+                <input type="hidden" name="category" value="{{.}}">
+                <button type="submit">X</button>
+            </form>
+        </i>
+    {{end}}
+</div>
+
+<div id="UploadTab" class="tabcontent">
+    <form class="basicform" action="/user/upload" method="post" enctype="multipart/form-data">
+        <h2>Upload a new gif!</h2>
+        <div class="row"><div class="field">Title</div><input type="text" name="title"></div>
+        <div class="row"><div class="field">Tags</div><input type="text" name="tags"></div>
+        <div class="row">
+            <div class="field">Add to Categories</div>
+            {{range .User.Categories}}
+                <label class="tag">
+                    <input type="checkbox" name="cat-{{.}}" style="margin: 0px; padding: 0px; width: auto;"> {{.}}
+                </label>
+            {{end}}
+        </div>
+        <div class="row"><div class="field">File</div><input type="file" name="uploadFile" id="uploadFile"></div>
+        <div class="row"><input type="submit" value="Submit &#8682;"></div>
+    </form>
+</div>
+
+<div id="APIKeyTab" class="tabcontent">
+    <p>This is your API Key.  It can be used to access the API.</p>
+    <p>Keep it secret.  Keep it safe.</p>
+    <form class="basicform">
+        <div class="row"><input type="text" name="title" value="{{.User.APIKey}}" id="apikeyvalue" readonly="readonly"></div>
+        <div class="row"><button onClick="copyText('apikeyvalue');return false;">Copy API Key <i class="fa fa-copy"></i></button></div>
+    </form>
+</div>
+
+<script>
+    function openPage(pageName, elmnt) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tabcontent");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+        tablinks = document.getElementsByClassName("tablink");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].style.backgroundColor = "";
+        }
+        document.getElementById(pageName).style.display = "block";
+        elmnt.style.backgroundColor = 'orange';
+    }
+    // Get the element with id="defaultOpen" and click on it
+    var tab = window.location.hash.substr(1)
+    if (tab) {
+        document.getElementById("tab"+tab).click()
+    } else {
+        document.getElementById("tabHome").click(); 
+    }
+</script>
+
+{{template "footer.tmpl" .}}

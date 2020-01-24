@@ -1,4 +1,5 @@
-giphy-clone
+giphaux
+database
 *.exe
 *.exe~
 *.dll
@@ -6,3 +7,4 @@ giphy-clone
 *.dylib
 *.test
 *.out
+gifs/*

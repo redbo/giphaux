@@ -1,37 +1,24 @@
-package main
+package giphaux
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/redbo/giphaux/shared"
 )
 
-func apiResponse(w http.ResponseWriter, code int, rsp map[interface{}]interface{}) {
-	if rsp == nil {
-		rsp = map[interface{}]interface{}{
-			"meta": Meta{Status: code, Msg: http.StatusText(code)},
-		}
-	}
-	js, err := json.Marshal(rsp)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(js)
-}
+// These handlers are for API access and primarily return json objects.
 
 func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
-	gifs := []GIF{}
+	gifs := []shared.GIF{}
 	rsp := map[interface{}]interface{}{
 		"data": gifs,
-		"pagination": Pagination{
+		"pagination": shared.Pagination{
 			TotalCount: len(gifs),
 			Count:      len(gifs),
 			Offset:     0,
 		},
 	}
-	apiResponse(w, http.StatusOK, rsp)
+	s.apiResponse(w, http.StatusOK, rsp)
 }
 
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
