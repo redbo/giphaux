@@ -45,3 +45,25 @@ func TestNormalizeUsername(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizeRating(t *testing.T) {
+
+	tests := []struct {
+		valid      bool
+		test       string
+		normalized string
+	}{
+		{true, "G", "g"},
+		{true, "g", "g"},
+		{true, "PG-13", "pg-13"},
+		{true, "R", "r"},
+		{false, "nc-17", ""},
+		{false, "", ""},
+	}
+	for _, testcase := range tests {
+		if username, err := NormalizeRating(testcase.test); (err != nil && testcase.valid) || (err == nil && !testcase.valid) {
+			t.Logf("ValidateRating(%q) -> %v, %v", testcase.test, username, err)
+			t.Fail()
+		}
+	}
+}

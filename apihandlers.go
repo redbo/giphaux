@@ -11,8 +11,12 @@ import (
 
 func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 	var limit, offset int
+	var rating string
 	var err error
 	q := r.URL.Query().Get("q")
+	if rating, err = shared.NormalizeRating(r.URL.Query().Get("rating")); err != nil {
+		rating = "g" // default search to a "g" rating
+	}
 	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit < 0 || limit > s.queryLimit {
 		s.apiResponse(w, http.StatusBadRequest, nil)
 		return
@@ -21,7 +25,7 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusBadRequest, nil)
 		return
 	}
-	gifs, totalResults, err := s.ds.Search(q, limit, offset)
+	gifs, totalResults, err := s.ds.Search(q, limit, offset, rating)
 	if err != nil {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return

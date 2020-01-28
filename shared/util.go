@@ -6,10 +6,22 @@ import (
 	"strings"
 )
 
+var ratings = []string{"g", "pg", "pg-13", "r"}                 // Ratings are the supported ratings for images.  Basically follows movie ratings.
 var multispace = regexp.MustCompile(`\s+`)                      // used as part of tag normalization
 var invalidTagChars = regexp.MustCompile(`(^-+)|[^\w\-]|(-+$)`) // matches any non-word characters and padding hyphens
 var validUsername = regexp.MustCompile(`^[a-z0-9\-]{3,20}$`)    // make sure usernames are 3-20 lowercase alphanumeric
 var validGIFID = regexp.MustCompile(`^[a-zA-Z0-9]{8,64}$`)      // make sure gifids are 8-64 alphanumerics
+
+// NormalizeRating makes sure the rating is valid and formats it correctly.
+func NormalizeRating(rating string) (string, error) {
+	rating = strings.TrimSpace(strings.ToLower(rating))
+	for _, r := range ratings {
+		if rating == r {
+			return r, nil
+		}
+	}
+	return "", fmt.Errorf("Unknown rating")
+}
 
 // NormalizeTag takes a string and makes it into a canonical tag, which means all lowercase, trimmed and any spaces replaced with hyphens.
 func NormalizeTag(tag string) (string, error) {

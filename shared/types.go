@@ -16,7 +16,7 @@ type DataStore interface {
 	RemoveGIF(username string, gifid string) error
 	UpdateCategories(username, gifid string, categories []string) error
 
-	Search(query string, limit int, offset int) ([]*GIF, int, error)
+	Search(query string, limit int, offset int, rating string) ([]*GIF, int, error)
 	Trending(limit int, off int, rating string) ([]*GIF, error)
 	RandomSearch(q string, weirdness int) (*GIF, error)
 	RandomByTag(tag string, rating string) (*GIF, error)
@@ -48,6 +48,7 @@ type UserGIFInfo struct {
 	Categories map[string]bool
 }
 
+// FrontPageData contains information for displaying a user's home page.
 type FrontPageData struct {
 	Categories map[string][]*GIF
 }

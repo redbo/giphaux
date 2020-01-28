@@ -111,6 +111,8 @@ func (s *server) userUnfavorite(w http.ResponseWriter, r *http.Request) {
 // This is the mickey mouse version of accepting file uploads.
 // I could talk at length about doing so optimally.
 func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var rating string
 	r.ParseMultipartForm(s.uploadLimit)
 	user := getUser(r.Context())
 	if user == nil {
@@ -125,8 +127,10 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sourceURL := ""
-	rating := "g"
-
+	if rating, err = shared.NormalizeRating(r.URL.Query().Get("rating")); err != nil {
+		s.error(w, r, http.StatusBadRequest, "Invalid rating")
+		return
+	}
 	cats := []string{}
 	for key := range r.Form {
 		if strings.HasPrefix(key, "cat-") {

@@ -145,7 +145,7 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 		offset = 0
 	}
 	limit := 12
-	gifs, totalresults, err := s.ds.Search(q, limit, offset)
+	gifs, totalresults, err := s.ds.Search(q, limit, offset, "g")
 	if err != nil {
 		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
 		return
