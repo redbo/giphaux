@@ -8,10 +8,9 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/gorilla/handlers"
+	"github.com/felixge/httpsnoop"
 	"github.com/gorilla/mux"
 	"github.com/redbo/giphaux/backend/sqlite"
 	"github.com/redbo/giphaux/shared"
@@ -113,13 +112,17 @@ func (s *server) logMiddleware(next http.Handler) http.Handler {
 			zap.String("RequestID", fmt.Sprintf("%x", rand.Int63())),
 		)
 		ctx := context.WithValue(r.Context(), loggerKey, logger)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		m := httpsnoop.CaptureMetrics(next, w, r.WithContext(ctx))
 		logger.Info("ACCESS",
 			zap.String("method", r.Method),
 			zap.String("remote_address", r.RemoteAddr),
-			zap.String("path", r.URL.Path),
+			zap.String("referer", r.Referer()),
+			zap.String("agent", r.UserAgent()),
+			zap.String("path", r.URL.String()),
 			zap.Time("start", start),
-			zap.Duration("duration", time.Now().Sub(start)),
+			zap.Int("response_code", m.Code),
+			zap.Int64("response_size", m.Written),
+			zap.Duration("duration", m.Duration),
 		)
 	})
 }
@@ -227,9 +230,6 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
 	r.Use(s.templateReload) // TODO: TEMPORARY REMOVE THIS
-	r.Use(func(n http.Handler) http.Handler {
-		return handlers.CombinedLoggingHandler(os.Stdout, n)
-	}) // install a middleware that logs requests to stdout in combined apache format
 
 	return s, nil
 }
