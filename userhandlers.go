@@ -127,7 +127,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sourceURL := ""
-	if rating, err = shared.NormalizeRating(r.URL.Query().Get("rating")); err != nil {
+	if rating, err = shared.NormalizeRating(r.FormValue("rating")); err != nil {
 		s.error(w, r, http.StatusBadRequest, "Invalid rating")
 		return
 	}
