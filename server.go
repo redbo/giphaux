@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/felixge/httpsnoop"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/redbo/giphaux/backend/sqlite"
@@ -113,13 +114,17 @@ func (s *server) logMiddleware(next http.Handler) http.Handler {
 			zap.String("RequestID", fmt.Sprintf("%x", rand.Int63())),
 		)
 		ctx := context.WithValue(r.Context(), loggerKey, logger)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		m := httpsnoop.CaptureMetrics(next, w, r.WithContext(ctx))
 		logger.Info("ACCESS",
 			zap.String("method", r.Method),
 			zap.String("remote_address", r.RemoteAddr),
-			zap.String("path", r.URL.Path),
+			zap.String("referer", r.Referer()),
+			zap.String("agent", r.UserAgent()),
+			zap.String("url", r.URL.String()),
 			zap.Time("start", start),
-			zap.Duration("duration", time.Now().Sub(start)),
+			zap.Int("response_code", m.Code),
+			zap.Int64("size", m.Written),
+			zap.Duration("duration", m.Duration),
 		)
 	})
 }
