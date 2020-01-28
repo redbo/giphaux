@@ -9,13 +9,20 @@ import (
 // These handlers are for API access and primarily return json objects.
 
 func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
-	gifs := []shared.GIF{}
-	rsp := map[interface{}]interface{}{
+	q := r.URL.Query().Get("q")
+	limit := 12
+	offset := 0
+	gifs, totalResults, err := s.ds.Search(q, limit, offset)
+	if err != nil {
+		s.apiResponse(w, http.StatusInternalServerError, nil)
+		return
+	}
+	rsp := map[string]interface{}{
 		"data": gifs,
 		"pagination": shared.Pagination{
-			TotalCount: len(gifs),
+			TotalCount: totalResults,
 			Count:      len(gifs),
-			Offset:     0,
+			Offset:     offset,
 		},
 	}
 	s.apiResponse(w, http.StatusOK, rsp)

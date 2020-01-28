@@ -117,9 +117,9 @@ func (s *server) error(w http.ResponseWriter, r *http.Request, code int, msg str
 }
 
 // apiResponse responds with serialized JSON.  It automatically appends a Meta object containing the response status.
-func (s *server) apiResponse(w http.ResponseWriter, code int, rsp map[interface{}]interface{}) {
+func (s *server) apiResponse(w http.ResponseWriter, code int, rsp map[string]interface{}) {
 	if rsp == nil || len(rsp) == 0 {
-		rsp = map[interface{}]interface{}{
+		rsp = map[string]interface{}{
 			"meta": shared.Meta{Status: code, Msg: http.StatusText(code)},
 		}
 	}
