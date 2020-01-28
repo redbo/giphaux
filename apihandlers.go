@@ -30,15 +30,14 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	rsp := map[string]interface{}{
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
 		"data": gifs,
 		"pagination": shared.Pagination{
 			TotalCount: totalResults,
 			Count:      len(gifs),
 			Offset:     offset,
 		},
-	}
-	s.apiResponse(w, http.StatusOK, rsp)
+	})
 }
 
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
@@ -50,10 +49,9 @@ func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
 	if err != nil || gif == nil {
 		s.apiResponse(w, http.StatusNotFound, nil)
 	}
-	rsp := map[string]interface{}{
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
 		"data": gif,
-	}
-	s.apiResponse(w, http.StatusOK, rsp)
+	})
 }
 
 func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
@@ -82,15 +80,14 @@ func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	rsp := map[string]interface{}{
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
 		"data": gifs,
 		"pagination": shared.Pagination{
 			TotalCount: totalResults,
 			Count:      len(gifs),
 			Offset:     offset,
 		},
-	}
-	s.apiResponse(w, http.StatusOK, rsp)
+	})
 }
 
 func (s *server) apiTranslate(w http.ResponseWriter, r *http.Request) {
