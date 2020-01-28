@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/redbo/giphaux/shared"
+	gormzap "github.com/wantedly/gorm-zap"
+	"go.uber.org/zap"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // anonymous import just makes the sqlite driver available to gorm
@@ -437,13 +439,14 @@ func (s *sqlDataStore) UpdateCategories(username string, gifid string, categorie
 var _ shared.DataStore = &sqlDataStore{}
 
 // OpenStore returns a giphaux.DataStore connected to the named database file.
-func OpenStore(settings *shared.Configuration) (shared.DataStore, error) {
+func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataStore, error) {
 	db, err := gorm.Open("sqlite3", settings.Database)
 	if err != nil {
 		return nil, fmt.Errorf("Error opening database: %w", err)
 	}
 	if settings.Verbose {
 		db.LogMode(true)
+		db.SetLogger(gormzap.New(logger))
 	}
 
 	// Have gorm automatically create these tables.

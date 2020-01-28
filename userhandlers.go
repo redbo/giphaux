@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/redbo/giphaux/shared"
+	"go.uber.org/zap"
 )
 
 // These handlers are meant for web browser access and are only accessible if you're logged in.
@@ -17,7 +18,8 @@ func (s *server) userIndex(w http.ResponseWriter, r *http.Request) {
 	user := getUser(r.Context())
 	fp, err := s.ds.UserFrontpage(user.Username)
 	if err != nil {
-		s.error(w, r, 500, "Error finding user")
+		s.log(r).Error("Error getting user homepage", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error finding user")
 		return
 	}
 	s.template(w, r, "user.tmpl", fp)
@@ -28,12 +30,13 @@ func (s *server) userAddCategory(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	category, err := shared.NormalizeTag(r.FormValue("category"))
 	if err != nil {
-		s.error(w, r, 500, "Invalid category name")
+		s.error(w, r, http.StatusBadRequest, "Invalid category name")
 		return
 	}
 	user := getUser(r.Context())
 	if err := s.ds.AddCategory(user.Username, category); err != nil {
-		s.error(w, r, 500, "Unable to create category")
+		s.log(r).Error("Error creating category", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Unable to create category")
 		return
 	}
 	http.Redirect(w, r, "/user/#Categories", http.StatusSeeOther)
@@ -45,11 +48,12 @@ func (s *server) userRemoveCategory(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	category, err := shared.NormalizeTag(r.FormValue("category"))
 	if err != nil {
-		s.error(w, r, 500, "Invalid category name")
+		s.error(w, r, http.StatusBadRequest, "Invalid category name")
 		return
 	}
 	if err := s.ds.RemoveCategory(user.Username, category); err != nil {
-		s.error(w, r, 500, "Error removing category.")
+		s.log(r).Error("Error removing category", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error removing category.")
 		return
 	}
 	http.Redirect(w, r, "/user/#Categories", http.StatusSeeOther)
@@ -68,7 +72,8 @@ func (s *server) userUpdateCategories(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.ds.UpdateCategories(user.Username, gif, cats); err != nil {
-		s.error(w, r, 500, "Error updating categories")
+		s.log(r).Error("Error updating categories", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error updating categories")
 		return
 	}
 	http.Redirect(w, r, "/gifs/"+gif, http.StatusSeeOther)
@@ -88,7 +93,8 @@ func (s *server) userFavorite(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.ds.AddFavorite(user.Username, gif, cats); err != nil {
-		s.error(w, r, 500, "Error favoriting GIF.")
+		s.log(r).Error("Error favoriting gif", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error favoriting GIF")
 		return
 	}
 	http.Redirect(w, r, "/gifs/"+gif, http.StatusSeeOther)
@@ -100,7 +106,8 @@ func (s *server) userUnfavorite(w http.ResponseWriter, r *http.Request) {
 	gif := r.FormValue("gifid")
 	user := getUser(r.Context())
 	if err := s.ds.RemoveFavorite(user.Username, gif); err != nil {
-		s.error(w, r, 500, "Error unfavoriting")
+		s.log(r).Error("Error unfavoriting gif", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error unfavoriting GIF")
 		return
 	}
 	http.Redirect(w, r, "/gifs/"+gif, http.StatusSeeOther)
@@ -116,7 +123,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(s.uploadLimit)
 	user := getUser(r.Context())
 	if user == nil {
-		s.error(w, r, 500, "No user authenticated")
+		s.log(r).Error("No user?")
 		return
 	}
 	title := r.FormValue("title")
@@ -142,24 +149,29 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 
 	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating)
 	if err != nil {
-		s.error(w, r, 500, "Error persisting gif to database")
+		s.log(r).Error("Error saving gif to database", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")
 		return
 	}
 
 	file, _, err := r.FormFile("uploadFile")
 	if err != nil {
-		s.error(w, r, 500, "Error saving the file")
+		s.log(r).Error("Error getting gif upload", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
 		return
 	}
 	defer file.Close()
-	fp, err := os.Create(filepath.Join(s.gifsDir, gif.ID+".gif"))
+	filename := filepath.Join(s.gifsDir, gif.ID+".gif")
+	fp, err := os.Create(filename)
 	if err != nil {
-		s.error(w, r, 500, "Error saving the file")
+		s.log(r).Error("Error creating file", zap.Error(err), zap.String("path", filename))
+		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
 		return
 	}
 	defer fp.Close()
 	if _, err := io.Copy(fp, file); err != nil {
-		s.error(w, r, 500, "Error saving the file")
+		s.log(r).Error("Error writing to file", zap.Error(err), zap.String("path", filename))
+		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
 		return
 	}
 	fp.Sync()
@@ -177,7 +189,8 @@ func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	user := getUser(r.Context())
 	if err := s.ds.RemoveGIF(user.Username, gifid); err != nil {
-		s.error(w, r, 500, "Error deleting GIF")
+		s.log(r).Error("Error deleting GIF", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error deleting GIF")
 		return
 	}
 	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.

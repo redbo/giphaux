@@ -3,6 +3,7 @@ package giphaux
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"math/rand"
@@ -15,6 +16,7 @@ import (
 	"github.com/redbo/giphaux/backend/sqlite"
 	"github.com/redbo/giphaux/shared"
 	"github.com/redbo/giphaux/templates"
+	"go.uber.org/zap"
 )
 
 // server holds the server instance's shared state and is the top-level HTTP handler.
@@ -26,10 +28,14 @@ type server struct {
 	tmpDir      string
 	uploadLimit int64
 	queryLimit  int
+	logger      *zap.Logger
 }
 
-// userKey serves as a map key for the user's information in the request's Context
-var userKey = &struct{}{}
+// these serve as map keys for items in a request's Context
+var (
+	userKey   = &struct{}{}
+	loggerKey = &struct{}{}
+)
 
 // getUser extracts the user struct associated with this request from the context
 func getUser(ctx context.Context) *shared.User {
@@ -37,6 +43,13 @@ func getUser(ctx context.Context) *shared.User {
 		return v
 	}
 	return nil
+}
+
+func (s *server) log(r *http.Request) *zap.Logger {
+	if v, ok := r.Context().Value(loggerKey).(*zap.Logger); ok && v != nil {
+		return v
+	}
+	return s.logger
 }
 
 // templateReload is a hack to enable for more rapid development.
@@ -51,6 +64,7 @@ func (s *server) templateReload(next http.Handler) http.Handler {
 func (s *server) authorizeAPIUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if getUser(r.Context()) == nil {
+			s.log(r).Info("API user not authorized")
 			s.apiResponse(w, http.StatusUnauthorized, nil)
 			return
 		}
@@ -84,10 +98,29 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 func (s *server) authorizeWebUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if getUser(r.Context()) == nil {
+			s.log(r).Info("User not authorized")
 			s.error(w, r, http.StatusUnauthorized, "Not Authorized")
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *server) logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		logger := s.logger.With(
+			zap.String("RequestID", fmt.Sprintf("%x", rand.Int63())),
+		)
+		ctx := context.WithValue(r.Context(), loggerKey, logger)
+		next.ServeHTTP(w, r.WithContext(ctx))
+		logger.Info("ACCESS",
+			zap.String("method", r.Method),
+			zap.String("remote_address", r.RemoteAddr),
+			zap.String("path", r.URL.Path),
+			zap.Time("start", start),
+			zap.Duration("duration", time.Now().Sub(start)),
+		)
 	})
 }
 
@@ -102,7 +135,7 @@ func (s *server) template(w http.ResponseWriter, r *http.Request, name string, d
 		"Data":  data,
 	})
 	if err != nil {
-		log.Printf("Error executing template: %v", err.Error())
+		s.logger.Error("Error executing template: %v", zap.Error(err))
 	}
 }
 
@@ -126,6 +159,7 @@ func (s *server) apiResponse(w http.ResponseWriter, code int, rsp map[string]int
 	}
 	js, err := json.Marshal(rsp)
 	if err != nil {
+		s.logger.Error("Error marshalling json", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -135,8 +169,8 @@ func (s *server) apiResponse(w http.ResponseWriter, code int, rsp map[string]int
 }
 
 // NewServer creates a new instance of the server.
-func NewServer(settings *shared.Configuration) (http.Handler, error) {
-	ds, err := sqlite.OpenStore(settings)
+func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler, error) {
+	ds, err := sqlite.OpenStore(settings, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +189,7 @@ func NewServer(settings *shared.Configuration) (http.Handler, error) {
 		tmpDir:      settings.TempDir,
 		uploadLimit: settings.UploadLimit,
 		queryLimit:  settings.MaxQueryLimit,
+		logger:      logger,
 	}
 
 	// Routes for anonymous-accessible web pages.
@@ -189,6 +224,7 @@ func NewServer(settings *shared.Configuration) (http.Handler, error) {
 	webAuthed.HandleFunc("/updatecategories", s.userUpdateCategories).Methods("POST")
 	webAuthed.Use(s.authorizeWebUser)
 
+	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
 	r.Use(s.templateReload) // TODO: TEMPORARY REMOVE THIS
 	r.Use(func(n http.Handler) http.Handler {
@@ -205,9 +241,13 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // Run starts the server.
 func Run(settings *shared.Configuration) {
 	rand.Seed(time.Now().Unix())
-	s, err := NewServer(settings)
+	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal(err.Error())
+	}
+	s, err := NewServer(settings, logger)
+	if err != nil {
+		logger.Fatal("Error creating server", zap.Error(err))
 	}
 
 	// Listen and serve on 0.0.0.0:8080
