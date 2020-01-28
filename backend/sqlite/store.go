@@ -56,25 +56,22 @@ func (s *sqlDataStore) RandomID() string {
 // NewUser creates a user with the given credentials
 func (s *sqlDataStore) NewUser(username, password string) (*shared.User, error) {
 	dbuser := new(User)
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		if tx.Create(&User{
-			Username: username,
-			Password: password,
-			APIKey:   s.RandomID(),
-			Cookie:   s.RandomID(),
-		}).Scan(&dbuser).Error != nil {
-			return fmt.Errorf("Error creating user")
-		}
-		return nil
-	})
-	return userToUser(dbuser), err
+	if err := s.db.Create(&User{
+		Username: username,
+		Password: password,
+		APIKey:   s.RandomID(),
+		Cookie:   s.RandomID(),
+	}).Scan(&dbuser).Error; err != nil {
+		return nil, fmt.Errorf("Error creating user: %w", err)
+	}
+	return userToUser(dbuser), nil
 }
 
 // usernameToID is a utility function for grabbing a user's database ID by username
 func usernameToID(db *gorm.DB, username string) (uint, error) {
 	dbuser := &struct{ ID uint }{}
 	if err := db.Table("users").Select("id").Where("username = ?", username).Scan(dbuser).Error; err != nil {
-		return 0, fmt.Errorf("Unable to find user")
+		return 0, fmt.Errorf("Unable to find user: %w", err)
 	}
 	return dbuser.ID, nil
 }
@@ -83,7 +80,7 @@ func usernameToID(db *gorm.DB, username string) (uint, error) {
 func gifToID(db *gorm.DB, gifid string) (uint, error) {
 	dbgif := new(GIF)
 	if err := db.Table("gifs").Select("id").Where("api_id = ?", gifid).Scan(dbgif).Error; err != nil {
-		return 0, fmt.Errorf("Unable to find gif")
+		return 0, fmt.Errorf("Unable to find gif: %s", err)
 	}
 	return dbgif.ID, nil
 }
@@ -107,7 +104,7 @@ func (s *sqlDataStore) GetUserByKey(key string) (*shared.User, error) {
 		return nil, fmt.Errorf("Unable to find user")
 	}
 	if err := s.db.Table("categories").Where("user_id = ?", dbuser.ID).Find(&dbuser.Categories).Error; err != nil {
-		return nil, fmt.Errorf("Unable to find user categories")
+		return nil, fmt.Errorf("Unable to find user categories: %w", err)
 	}
 	return userToUser(dbuser), nil
 }
@@ -130,7 +127,7 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 	fp := &shared.FrontPageData{Categories: make(map[string][]*shared.GIF)}
 	userID, err := usernameToID(s.db, username)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find user")
+		return nil, fmt.Errorf("Unable to find user: %w", err)
 	}
 	addResults := func(title string, results []GIF) {
 		fp.Categories[title] = make([]*shared.GIF, 0)
@@ -161,7 +158,6 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 func (s *sqlDataStore) GIFByID(id string) (*shared.GIF, error) {
 	dbgif := new(GIF)
 	if r := s.db.Model(dbgif).Where("api_id = ?", id).Scan(dbgif); r.Error != nil {
-		fmt.Printf("Error fetching gif: %w\n", r.Error)
 		return nil, fmt.Errorf("Error fetching gif: %w", r.Error)
 	}
 	return gifToGIF(dbgif), nil
@@ -172,19 +168,17 @@ func (s *sqlDataStore) RemoveFavorite(username string, gifid string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		gifID, err := gifToID(tx, gifid)
 		if err != nil {
-			return fmt.Errorf("Unable to find gif")
+			return fmt.Errorf("Unable to find gif: %w", err)
 		}
 		favorite := new(Favorite)
 		if db := tx.Model(favorite).Where("user_id = ? AND gif_id = ?", userID, gifID).Scan(favorite); db.Error != nil {
-			fmt.Printf("Unable to find category: %w\n", db.Error)
 			return fmt.Errorf("Unable to find category: %w", db.Error)
 		}
 		if db := tx.Delete(&CategorizedFavorite{}, "favorite_id = ?", favorite.ID); db.Error != nil {
-			fmt.Printf("Unable to delete assocations: %w\n", db.Error)
 			return fmt.Errorf("Unable to delete assocations: %w", db.Error)
 		}
 		return tx.Delete(favorite, "id = ?", favorite.ID).Error
@@ -196,15 +190,15 @@ func (s *sqlDataStore) AddFavorite(username string, gifid string, categories []s
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		gifID, err := gifToID(tx, gifid)
 		if err != nil {
-			return fmt.Errorf("Unable to find gif")
+			return fmt.Errorf("Unable to find gif: %w", err)
 		}
 		fav := new(Favorite)
 		if err := tx.Create(&Favorite{UserID: userID, GIFID: gifID}).Scan(&fav).Error; err != nil {
-			return fmt.Errorf("Error saving favorite")
+			return fmt.Errorf("Error saving favorite: %w", err)
 		}
 		return tx.Exec(`INSERT INTO categorized_favorites (favorite_id, category_id)
 						SELECT ?, id FROM categories WHERE title IN (?) AND user_id=?`, fav.ID, categories, userID).Error
@@ -215,12 +209,12 @@ func (s *sqlDataStore) AddFavorite(username string, gifid string, categories []s
 func (s *sqlDataStore) UserGIFInfo(username string, gifid string) (*shared.UserGIFInfo, error) {
 	userID, err := usernameToID(s.db, username)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find user")
+		return nil, fmt.Errorf("Unable to find user: %w", err)
 	}
 	dbgif := new(GIF)
 	dbfav := new(Favorite)
-	if r := s.db.Model(dbgif).Where("api_id = ?", gifid).Scan(dbgif); r.Error != nil {
-		return nil, fmt.Errorf("Error fetching gif")
+	if err := s.db.Model(dbgif).Where("api_id = ?", gifid).Scan(dbgif).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching gif: %w", err)
 	}
 	favorited := false
 	categories := []struct {
@@ -248,9 +242,8 @@ func (s *sqlDataStore) UserGIFInfo(username string, gifid string) (*shared.UserG
 // GIFsByID returns a list of gifs with the given IDs.
 func (s *sqlDataStore) GIFsByID(ids []string) ([]*shared.GIF, error) {
 	dbgifs := []GIF{}
-	if r := s.db.Model(&GIF{}).Where("api_id IN ?", ids).Scan(&dbgifs); r.Error != nil {
-		fmt.Printf("Error fetching gif: %w\n", r.Error)
-		return nil, fmt.Errorf("Error fetching gif: %w", r.Error)
+	if err := s.db.Model(&GIF{}).Where("api_id IN ?", ids).Scan(&dbgifs).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching gif: %w", err)
 	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
@@ -279,9 +272,9 @@ func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GI
 	documentCount := struct{ Count int }{0}
 	s.db.Table("gifs").Select("COUNT(*) as count").Where("trending IS NOT NULL").Scan(&documentCount)
 	gifs := []GIF{}
-	if db := s.db.Table("gifs").Limit(limit).Offset(off).
-		Where("trending IS NOT NULL").Order("trending desc").Scan(&gifs); db.Error != nil {
-		return nil, 0, fmt.Errorf("Error fetching gifs")
+	if err := s.db.Table("gifs").Limit(limit).Offset(off).
+		Where("trending IS NOT NULL").Order("trending desc").Scan(&gifs).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error fetching gifs: %w", err)
 	}
 	rgifs := make([]*shared.GIF, 0)
 	for _, gif := range gifs {
@@ -311,7 +304,7 @@ func (s *sqlDataStore) AddCategory(username string, title string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		return tx.Create(&Category{
 			UserID: uint(userID),
@@ -325,14 +318,14 @@ func (s *sqlDataStore) RemoveCategory(username string, title string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		category := new(Category)
-		if db := tx.Model(category).Where("user_id = ? AND title = ?", userID, title).Scan(category); db.Error != nil {
-			return fmt.Errorf("Unable to find category")
+		if err := tx.Model(category).Where("user_id = ? AND title = ?", userID, title).Scan(category).Error; err != nil {
+			return fmt.Errorf("Unable to find category: %w", err)
 		}
-		if db := tx.Delete(&CategorizedFavorite{}, "category_id = ?", category.ID); db.Error != nil {
-			return fmt.Errorf("Unable to delete assocations")
+		if err := tx.Delete(&CategorizedFavorite{}, "category_id = ?", category.ID).Error; err != nil {
+			return fmt.Errorf("Unable to delete assocations: %w", err)
 		}
 		return tx.Delete(&Category{}, "id = ?", category.ID).Error
 	})
@@ -346,9 +339,9 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
-		tx.Create(&GIF{
+		if err := tx.Create(&GIF{
 			Type:             "gif",
 			APIID:            fmt.Sprintf("%016x", rand.Int63()),
 			ImportDatetime:   &t,
@@ -359,27 +352,26 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			Tags:             strings.Join(tags, ","),
 			UserID:           userID,
 			ContentURL:       "",
-		}).Scan(&gif)
-		tx.Create(&Favorite{ // automatically favorite the GIF on upload.
-			UserID: userID,
-			GIFID:  gif.ID,
-		}).Scan(&fav)
+		}).Scan(&gif).Error; err != nil {
+			return fmt.Errorf("Error creating gif: %w", err)
+		}
+		// automatically favorite the GIF on upload.
+		if err := tx.Create(&Favorite{UserID: userID, GIFID: gif.ID}).Scan(&fav).Error; err != nil {
+			return fmt.Errorf("Error creating favorite: %w", err)
+		}
 		if len(cats) != 0 {
 			categories := []Category{}
 			if err := s.db.Table("categories").Where("user_id = ?", userID).Where("Title in (?)", cats).Scan(&categories).Error; err != nil {
-				return fmt.Errorf("Unable to load categories")
+				return fmt.Errorf("Unable to load categories: %w", err)
 			}
 			for _, cat := range categories {
 				if err := tx.Create(&CategorizedFavorite{
 					FavoriteID: fav.ID,
 					CategoryID: cat.ID,
 				}).Error; err != nil {
-					return fmt.Errorf("Unable to save new gif to categories")
+					return fmt.Errorf("Unable to save new gif to categories: %w", err)
 				}
 			}
-		}
-		if tx.Error != nil {
-			return fmt.Errorf("Error saving gif")
 		}
 		return nil
 	})
@@ -391,21 +383,21 @@ func (s *sqlDataStore) RemoveGIF(username string, gifid string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		dbgif := new(GIF)
 		if r := tx.Model(dbgif).Where("api_id = ? AND user_id = ?", gifid, userID).Scan(dbgif); r.Error != nil {
-			return fmt.Errorf("Error finding gif")
+			return fmt.Errorf("Error finding gif: %w", err)
 		}
 		if err := tx.Exec(`DELETE FROM categorized_favorites
 							WHERE favorite_id IN (SELECT id from favorites WHERE gif_id = ?)`, dbgif.ID).Error; err != nil {
-			return fmt.Errorf("Unable to remove categorizations for gif")
+			return fmt.Errorf("Unable to remove categorizations for gif: %w", err)
 		}
 		if err := tx.Exec(`DELETE FROM favorites WHERE gif_id = ?`, dbgif.ID).Error; err != nil {
-			return fmt.Errorf("Unable to remove favorites for gif")
+			return fmt.Errorf("Unable to remove favorites for gif: %w", err)
 		}
 		if err := tx.Exec(`DELETE FROM gifs WHERE id = ?`, dbgif.ID).Error; err != nil {
-			return fmt.Errorf("Unable to delete GIF")
+			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
 		return nil
 	})
@@ -416,18 +408,18 @@ func (s *sqlDataStore) UpdateCategories(username string, gifid string, categorie
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
 		if err != nil {
-			return fmt.Errorf("Unable to find user")
+			return fmt.Errorf("Unable to find user: %w", err)
 		}
 		gifID, err := gifToID(tx, gifid)
 		if err != nil {
-			return fmt.Errorf("Unable to find gif")
+			return fmt.Errorf("Unable to find gif: %w", err)
 		}
 		favorite := new(Favorite)
-		if db := tx.Model(favorite).Where("user_id = ? AND gif_id = ?", userID, gifID).Scan(favorite); db.Error != nil {
-			return fmt.Errorf("Unable to find favorite")
+		if err := tx.Model(favorite).Where("user_id = ? AND gif_id = ?", userID, gifID).Scan(favorite).Error; err != nil {
+			return fmt.Errorf("Unable to find favorite: %w", err)
 		}
-		if db := tx.Delete(&CategorizedFavorite{}, "favorite_id = ?", favorite.ID); db.Error != nil {
-			return fmt.Errorf("Unable to delete categorized favorites")
+		if err := tx.Delete(&CategorizedFavorite{}, "favorite_id = ?", favorite.ID).Error; err != nil {
+			return fmt.Errorf("Unable to delete categorized favorites: %w", err)
 		}
 		return tx.Exec(`INSERT INTO categorized_favorites (favorite_id, category_id)
 						SELECT ?, id FROM categories WHERE title IN (?) AND user_id=?`, favorite.ID, categories, userID).Error
