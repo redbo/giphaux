@@ -166,11 +166,11 @@ func NewServer(settings *shared.Configuration) (http.Handler, error) {
 
 	// Routes for API - api_key param must be verified.
 	apiAuthed := r.PathPrefix("/v1").Subrouter()
-	apiAuthed.HandleFunc("/randomid", nil)
+	apiAuthed.HandleFunc("/randomid", s.apiRandomID)
 	apiAuthed.HandleFunc("/gifs/search", s.apiSearch)
-	apiAuthed.HandleFunc("/gifs/trending", nil)
-	apiAuthed.HandleFunc("/gifs/translate", nil)
-	apiAuthed.HandleFunc("/gifs/random", nil)
+	apiAuthed.HandleFunc("/gifs/trending", s.apiTrending)
+	apiAuthed.HandleFunc("/gifs/translate", s.apiTranslate)
+	apiAuthed.HandleFunc("/gifs/random", s.apiRandomSearch)
 	apiAuthed.HandleFunc("/gifs/{id:[a-zA-Z0-9]+}", s.apiGifID)
 	apiAuthed.HandleFunc("/gifs", s.apiGifs)
 	apiAuthed.Use(s.authorizeAPIUser)

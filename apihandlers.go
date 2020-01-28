@@ -29,9 +29,19 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("GIF ID PAGE"))
 }
 
 func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("GIFS PAGE"))
+}
+
+func (s *server) apiRandomID(w http.ResponseWriter, r *http.Request) {
+}
+
+func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
+}
+
+func (s *server) apiTranslate(w http.ResponseWriter, r *http.Request) {
+}
+
+func (s *server) apiRandomSearch(w http.ResponseWriter, r *http.Request) {
 }
