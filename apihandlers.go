@@ -42,6 +42,18 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
+	gifid, err := shared.NormalizeGIFID(r.URL.Query().Get("gif_id"))
+	if err != nil {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+	}
+	gif, err := s.ds.GIFByID(gifid)
+	if err != nil || gif == nil {
+		s.apiResponse(w, http.StatusNotFound, nil)
+	}
+	rsp := map[string]interface{}{
+		"data": gif,
+	}
+	s.apiResponse(w, http.StatusOK, rsp)
 }
 
 func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
