@@ -17,6 +17,7 @@ type Configuration struct {
 	TempDir       string
 	UploadLimit   int64
 	MaxQueryLimit int
+	DomainName    string
 }
 
 // LoadConfiguration loads the config settings from the given .yml file.
@@ -27,6 +28,7 @@ func LoadConfiguration(files []string) (*Configuration, error) {
 	}
 	config := &Configuration{
 		Bind:          "0.0.0.0:8080",
+		DomainName:    "localhost:8080", // domain to use for URLs.
 		Database:      filepath.Join(cwd, "database"),
 		GifsDir:       filepath.Join(cwd, "gifs"),
 		Verbose:       true,

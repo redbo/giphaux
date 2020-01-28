@@ -18,12 +18,30 @@ import (
 // It turns out gorm has a lot of sharp edges and I can't enthusiastically recommend it.
 
 // gifToGIF coerces a database GIF record into the data structure dealt with by the API.
-func gifToGIF(src *GIF) *shared.GIF {
+func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
+	dbuser := &struct{ Username string }{}
+	if err := s.db.Table("users").Select("username").Where("id = ?", src.UserID).Scan(dbuser).Error; err != nil {
+		dbuser.Username = "" // sometimes this is empty on giphy too, presumably if the user deletes their account?
+	}
 	dst := &shared.GIF{
-		ID:      src.APIID,
-		Caption: src.Caption,
-		Tags:    strings.Split(src.Tags, ","),
-		// TODO: so much
+		ID:             src.APIID,
+		Caption:        src.Caption,
+		Type:           src.Type,
+		URL:            fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		BitlyURL:       fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		BitlyGifURL:    fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		Rating:         src.Rating,
+		Tags:           strings.Split(src.Tags, ","),
+		Username:       dbuser.Username,
+		Source:         src.Source,
+		ImportDatetime: src.ImportDatetime.Format("2006-01-02 15:04:05"),
+		// TODO: SO MUCH
+		/*
+			EmbedURL         string   `json:"embed_url"`
+			ContentURL       string   `json:"content_url"`
+			TrendingDatetime string   `json:"trending_datetime"`
+			Images           Images   `json:"images"`
+		*/
 	}
 	return dst
 }
@@ -45,7 +63,8 @@ func userToUser(src *User) *shared.User {
 
 // sqlDataStore implements the giphaux/backend.DataStore interface for a sqlite database.
 type sqlDataStore struct {
-	db *gorm.DB
+	db     *gorm.DB
+	domain string
 }
 
 // RandomID returns a random hex string.  Enjoy.
@@ -140,7 +159,7 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 	addResults := func(title string, results []GIF) {
 		fp.Categories[title] = make([]*shared.GIF, 0)
 		for _, gif := range results {
-			fp.Categories[title] = append(fp.Categories[title], gifToGIF(&gif))
+			fp.Categories[title] = append(fp.Categories[title], s.gifToGIF(&gif))
 		}
 	}
 	gifs := []GIF{}
@@ -176,7 +195,7 @@ func (s *sqlDataStore) GIFByID(id string) (*shared.GIF, error) {
 	if r := s.db.Model(dbgif).Where("api_id = ?", id).Scan(dbgif); r.Error != nil {
 		return nil, fmt.Errorf("Error fetching gif: %w", r.Error)
 	}
-	return gifToGIF(dbgif), nil
+	return s.gifToGIF(dbgif), nil
 }
 
 // RemoveFavorite removes a gif from the user's favorites.
@@ -263,7 +282,7 @@ func (s *sqlDataStore) GIFsByID(ids []string) ([]*shared.GIF, error) {
 	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
-		gifs = append(gifs, gifToGIF(&gif))
+		gifs = append(gifs, s.gifToGIF(&gif))
 	}
 	return gifs, nil
 }
@@ -284,7 +303,7 @@ func (s *sqlDataStore) Search(query string, limit int, offset int, rating string
 	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
-		gifs = append(gifs, gifToGIF(&gif))
+		gifs = append(gifs, s.gifToGIF(&gif))
 	}
 	return gifs, documentCount.Count, nil
 }
@@ -302,7 +321,7 @@ func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GI
 	}
 	rgifs := make([]*shared.GIF, 0)
 	for _, gif := range gifs {
-		rgifs = append(rgifs, gifToGIF(&gif))
+		rgifs = append(rgifs, s.gifToGIF(&gif))
 	}
 	return rgifs, documentCount.Count, nil
 }
@@ -321,7 +340,7 @@ func (s *sqlDataStore) RandomSearch(q string, weirdness int) (*shared.GIF, error
 		Where("gifs.id = gifsearch.docid").Scan(&dbgif).Error; err != nil {
 		return nil, fmt.Errorf("Error getting random search results: %w", err)
 	}
-	return gifToGIF(&dbgif), nil
+	return s.gifToGIF(&dbgif), nil
 }
 
 // RandomByTag returns a random image with the given tag.
@@ -405,7 +424,7 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 		}
 		return nil
 	})
-	return gifToGIF(gif), err
+	return s.gifToGIF(gif), err
 }
 
 // RemoveGIF removes a gif from the database entirely.
@@ -496,5 +515,5 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 				INSERT INTO gifsearch(docid, caption, tag, rating)
 				VALUES(new.rowid, new.caption, new.tags, new.rating);
 			END;`)
-	return &sqlDataStore{db}, nil
+	return &sqlDataStore{db: db, domain: settings.DomainName}, nil
 }
