@@ -88,23 +88,29 @@ func gifToID(db *gorm.DB, gifid string) (uint, error) {
 // GetUser returns a user based on their username
 func (s *sqlDataStore) GetUser(username string) (*shared.User, error) {
 	dbuser := new(User)
-	s.db.Model(dbuser).Where("username = ?", username).Scan(dbuser)
+	if err := s.db.Model(dbuser).Where("username = ?", username).Scan(dbuser).Error; err != nil {
+		return nil, fmt.Errorf("Error finding user by username: %w", err)
+	}
 	if dbuser.Username == "" {
 		return nil, fmt.Errorf("Unable to find user")
 	}
-	s.db.Table("categories").Where("user_id = ?", dbuser.ID).Scan(&dbuser.Categories)
+	if err := s.db.Table("categories").Where("user_id = ?", dbuser.ID).Find(&dbuser.Categories).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching user categories: %w", err)
+	}
 	return userToUser(dbuser), nil
 }
 
 // GetUserByKey looks up a user based on their API key.
 func (s *sqlDataStore) GetUserByKey(key string) (*shared.User, error) {
 	dbuser := new(User)
-	s.db.Model(dbuser).Where("api_key = ?", key).Scan(dbuser)
+	if err := s.db.Model(dbuser).Where("api_key = ?", key).Scan(dbuser).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching user by key: %w", err)
+	}
 	if dbuser.Username == "" {
 		return nil, fmt.Errorf("Unable to find user")
 	}
 	if err := s.db.Table("categories").Where("user_id = ?", dbuser.ID).Find(&dbuser.Categories).Error; err != nil {
-		return nil, fmt.Errorf("Unable to find user categories: %w", err)
+		return nil, fmt.Errorf("Error fetching user categories: %w", err)
 	}
 	return userToUser(dbuser), nil
 }
@@ -113,12 +119,14 @@ func (s *sqlDataStore) GetUserByKey(key string) (*shared.User, error) {
 func (s *sqlDataStore) GetUserByCookie(cookie string) (*shared.User, error) {
 	var dbuser User
 	if err := s.db.Model(dbuser).Where("cookie = ?", cookie).First(&dbuser).Error; err != nil {
-		return nil, fmt.Errorf("Unable to find cookie")
+		return nil, fmt.Errorf("Error fetching user by cookie: %w", err)
 	}
 	if dbuser.Username == "" {
 		return nil, fmt.Errorf("Unable to find user")
 	}
-	s.db.Table("categories").Where("user_id = ?", dbuser.ID).Scan(&dbuser.Categories)
+	if err := s.db.Table("categories").Where("user_id = ?", dbuser.ID).Find(&dbuser.Categories).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching user categories: %w", err)
+	}
 	return userToUser(&dbuser), nil
 }
 
@@ -136,19 +144,27 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 		}
 	}
 	gifs := []GIF{}
-	s.db.Table("gifs").Limit(8).Order("id desc").Where("user_id = ?", userID).Scan(&gifs)
+	if err := s.db.Table("gifs").Limit(8).Order("id desc").Where("user_id = ?", userID).Scan(&gifs).Error; err != nil {
+		return nil, fmt.Errorf("Error getting uploads: %w", err)
+	}
 	addResults("Uploads", gifs)
 
 	gifs = gifs[:]
-	s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE g.user_id=? ORDER BY f.id DESC LIMIT 8", userID).Scan(&gifs)
+	if err := s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE g.user_id=? ORDER BY f.id DESC LIMIT 8", userID).Scan(&gifs).Error; err != nil {
+		return nil, fmt.Errorf("Error getting favorites: %w", err)
+	}
 	addResults("Favorites", gifs)
 
 	cats := []Category{}
-	s.db.Table("categories").Where("user_id = ?", userID).Scan(&cats)
+	if err := s.db.Table("categories").Where("user_id = ?", userID).Scan(&cats).Error; err != nil {
+		return nil, fmt.Errorf("Error fetching categories: %w", err)
+	}
 	for _, cat := range cats {
 		gifs = gifs[:]
-		s.db.Raw(`SELECT g.* FROM (gifs g JOIN favorites f ON f.gif_id = g.id) JOIN categorized_favorites cf on f.id = cf.favorite_id
-					WHERE cf.category_id = ? LIMIT 8`, cat.ID).Scan(&gifs)
+		if err := s.db.Raw(`SELECT g.* FROM (gifs g JOIN favorites f ON f.gif_id = g.id) JOIN categorized_favorites cf on f.id = cf.favorite_id
+					WHERE cf.category_id = ? LIMIT 8`, cat.ID).Scan(&gifs).Error; err != nil {
+			return nil, fmt.Errorf("Error fetching categorized favorites: %w", err)
+		}
 		addResults(cat.Title, gifs)
 	}
 	return fp, nil
@@ -256,10 +272,16 @@ func (s *sqlDataStore) GIFsByID(ids []string) ([]*shared.GIF, error) {
 func (s *sqlDataStore) Search(query string, limit int, offset int, rating string) ([]*shared.GIF, int, error) {
 	dbgifs := []GIF{}
 	documentCount := struct{ Count int }{0}
-	s.db.Table("gifsearch").Select("COUNT(*) as count").Where("gifsearch MATCH ? AND rating MATCH ?", query, rating).Scan(&documentCount)
-	s.db.Table("gifsearch").Select("gifs.*").Joins("JOIN gifs").
+	if err := s.db.Table("gifsearch").Select("COUNT(*) as count").
+		Where("gifsearch MATCH ? AND rating MATCH ?", query, rating).Scan(&documentCount).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting search result count: %w", err)
+	}
+	if err := s.db.Table("gifsearch").Select("gifs.*").Joins("JOIN gifs").
 		Where("gifsearch MATCH ? AND rating MATCH ?", query, rating).Where("gifs.id = gifsearch.docid").
-		Limit(limit).Offset(offset).Scan(&dbgifs)
+		Limit(limit).Offset(offset).Scan(&dbgifs).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting search results: %w", err)
+
+	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
 		gifs = append(gifs, gifToGIF(&gif))
@@ -270,7 +292,9 @@ func (s *sqlDataStore) Search(query string, limit int, offset int, rating string
 // Trending returns the most recent trending gifs.
 func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GIF, int, error) {
 	documentCount := struct{ Count int }{0}
-	s.db.Table("gifs").Select("COUNT(*) as count").Where("trending IS NOT NULL").Scan(&documentCount)
+	if err := s.db.Table("gifs").Select("COUNT(*) as count").Where("trending IS NOT NULL").Scan(&documentCount).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting trending count: %w", err)
+	}
 	gifs := []GIF{}
 	if err := s.db.Table("gifs").Limit(limit).Offset(off).
 		Where("trending IS NOT NULL").Order("trending desc").Scan(&gifs).Error; err != nil {
@@ -287,10 +311,16 @@ func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GI
 func (s *sqlDataStore) RandomSearch(q string, weirdness int) (*shared.GIF, error) {
 	dbgif := GIF{}
 	documentCount := struct{ Count int64 }{0}
-	s.db.Table("gifsearch").Select("COUNT(*) as count").Where("gifsearch MATCH ?", q).Scan(&documentCount)
-	s.db.Table("gifsearch").Limit(1).Offset(rand.Int63()%documentCount.Count).Select("gifs.*").Joins("JOIN gifs").
+	if err := s.db.Table("gifsearch").Select("COUNT(*) as count").
+		Where("gifsearch MATCH ?", q).Scan(&documentCount).Error; err != nil {
+		return nil, fmt.Errorf("Error getting random search count: %w", err)
+	}
+	if err := s.db.Table("gifsearch").Limit(1).Offset(rand.Int63()%documentCount.Count).
+		Select("gifs.*").Joins("JOIN gifs").
 		Where("gifsearch MATCH ?", q).
-		Where("gifs.id = gifsearch.docid").Scan(&dbgif)
+		Where("gifs.id = gifsearch.docid").Scan(&dbgif).Error; err != nil {
+		return nil, fmt.Errorf("Error getting random search results: %w", err)
+	}
 	return gifToGIF(&dbgif), nil
 }
 
