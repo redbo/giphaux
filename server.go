@@ -25,6 +25,7 @@ type server struct {
 	gifsDir     string
 	tmpDir      string
 	uploadLimit int64
+	queryLimit  int
 }
 
 // userKey serves as a map key for the user's information in the request's Context
@@ -153,6 +154,7 @@ func NewServer(settings *shared.Configuration) (http.Handler, error) {
 		gifsDir:     settings.GifsDir,
 		tmpDir:      settings.TempDir,
 		uploadLimit: settings.UploadLimit,
+		queryLimit:  settings.MaxQueryLimit,
 	}
 
 	// Routes for anonymous-accessible web pages.

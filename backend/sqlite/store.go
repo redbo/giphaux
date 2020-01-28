@@ -263,8 +263,8 @@ func (s *sqlDataStore) Search(query string, limit int, offset int) ([]*shared.GI
 	documentCount := struct{ Count int }{0}
 	s.db.Table("gifsearch").Select("COUNT(*) as count").Where("gifsearch MATCH ?", query).Scan(&documentCount)
 	s.db.Table("gifsearch").Select("gifs.*").Joins("JOIN gifs").
-		Where("gifsearch MATCH ?", query).
-		Where("gifs.id = gifsearch.docid").Scan(&dbgifs)
+		Where("gifsearch MATCH ?", query).Where("gifs.id = gifsearch.docid").
+		Limit(limit).Offset(offset).Scan(&dbgifs)
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
 		gifs = append(gifs, gifToGIF(&gif))

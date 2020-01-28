@@ -2,6 +2,7 @@ package giphaux
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/redbo/giphaux/shared"
 )
@@ -9,9 +10,17 @@ import (
 // These handlers are for API access and primarily return json objects.
 
 func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
+	var limit, offset int
+	var err error
 	q := r.URL.Query().Get("q")
-	limit := 12
-	offset := 0
+	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit < 0 || limit > s.queryLimit {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
+	}
+	if offset, err = strconv.Atoi(r.URL.Query().Get("offset")); err != nil || offset < 0 {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
+	}
 	gifs, totalResults, err := s.ds.Search(q, limit, offset)
 	if err != nil {
 		s.apiResponse(w, http.StatusInternalServerError, nil)

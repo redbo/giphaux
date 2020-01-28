@@ -10,12 +10,13 @@ import (
 
 // Configuration contains settings for the server.
 type Configuration struct {
-	Bind        string
-	Database    string
-	Verbose     bool
-	GifsDir     string
-	TempDir     string
-	UploadLimit int64
+	Bind          string
+	Database      string
+	Verbose       bool
+	GifsDir       string
+	TempDir       string
+	UploadLimit   int64
+	MaxQueryLimit int
 }
 
 // LoadConfiguration loads the config settings from the given .yml file.
@@ -25,12 +26,13 @@ func LoadConfiguration(files []string) (*Configuration, error) {
 		return nil, fmt.Errorf("Unable to get working directory: %w", err)
 	}
 	config := &Configuration{
-		Bind:        "0.0.0.0:8080",
-		Database:    filepath.Join(cwd, "database"),
-		GifsDir:     filepath.Join(cwd, "gifs"),
-		Verbose:     true,
-		TempDir:     os.TempDir(),
-		UploadLimit: 50_000_000, // 50 MB limit on uploads by default
+		Bind:          "0.0.0.0:8080",
+		Database:      filepath.Join(cwd, "database"),
+		GifsDir:       filepath.Join(cwd, "gifs"),
+		Verbose:       true,
+		TempDir:       os.TempDir(),
+		UploadLimit:   50_000_000, // 50 MB limit on uploads by default
+		MaxQueryLimit: 100,        // limit on how many results a search query can return
 	}
 	for _, file := range files {
 		fp, err := os.Open(file)
