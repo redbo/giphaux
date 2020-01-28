@@ -273,16 +273,19 @@ func (s *sqlDataStore) Search(query string, limit int, offset int, rating string
 }
 
 // Trending returns the most recent trending gifs.
-func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GIF, error) {
+func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GIF, int, error) {
+	documentCount := struct{ Count int }{0}
+	s.db.Table("gifs").Select("COUNT(*) as count").Where("trending IS NOT NULL").Scan(&documentCount)
 	gifs := []GIF{}
-	if db := s.db.Table("gifs").Limit(limit).Offset(off).Order("trending desc").Scan(&gifs); db.Error != nil {
-		return nil, fmt.Errorf("Error fetching gifs")
+	if db := s.db.Table("gifs").Limit(limit).Offset(off).
+		Where("trending IS NOT NULL").Order("trending desc").Scan(&gifs); db.Error != nil {
+		return nil, 0, fmt.Errorf("Error fetching gifs")
 	}
 	rgifs := make([]*shared.GIF, 0)
 	for _, gif := range gifs {
 		rgifs = append(rgifs, gifToGIF(&gif))
 	}
-	return rgifs, nil
+	return rgifs, documentCount.Count, nil
 }
 
 // RandomSearch returns a random GIF that matches the query. I don't know what to do with weirdness.
@@ -347,7 +350,7 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			Type:             "gif",
 			APIID:            fmt.Sprintf("%016x", rand.Int63()),
 			ImportDatetime:   &t,
-			TrendingDatetime: &time.Time{},
+			TrendingDatetime: nil,
 			Rating:           rating,
 			Source:           sourceURL,
 			Caption:          caption,
@@ -406,6 +409,7 @@ func (s *sqlDataStore) RemoveGIF(username string, gifid string) error {
 	})
 }
 
+// UpdateCategories updates the user's categorizations for a favorited gif.
 func (s *sqlDataStore) UpdateCategories(username string, gifid string, categories []string) error {
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		userID, err := usernameToID(tx, username)
@@ -418,8 +422,7 @@ func (s *sqlDataStore) UpdateCategories(username string, gifid string, categorie
 		}
 		favorite := new(Favorite)
 		if db := tx.Model(favorite).Where("user_id = ? AND gif_id = ?", userID, gifID).Scan(favorite); db.Error != nil {
-			fmt.Printf("Unable to find category: %w\n", db.Error)
-			return fmt.Errorf("Unable to find category: %w", db.Error)
+			return fmt.Errorf("Unable to find favorite")
 		}
 		if db := tx.Delete(&CategorizedFavorite{}, "favorite_id = ?", favorite.ID); db.Error != nil {
 			return fmt.Errorf("Unable to delete categorized favorites")

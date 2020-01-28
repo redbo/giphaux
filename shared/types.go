@@ -17,7 +17,7 @@ type DataStore interface {
 	UpdateCategories(username, gifid string, categories []string) error
 
 	Search(query string, limit int, offset int, rating string) ([]*GIF, int, error)
-	Trending(limit int, off int, rating string) ([]*GIF, error)
+	Trending(limit int, off int, rating string) ([]*GIF, int, error)
 	RandomSearch(q string, weirdness int) (*GIF, error)
 	RandomByTag(tag string, rating string) (*GIF, error)
 	GIFByID(id string) (*GIF, error)
