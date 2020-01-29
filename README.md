@@ -2,7 +2,14 @@
 
 Giphaux is a minimal clone of Giphy written in go, including a web interface and a rough implementation of the [Giphy API](https://developers.giphy.com/docs/api#quick-start-guide).
 
-### Quick Start
+### Docker Start (untested)
+
+```sh
+$ docker build -t giphaux .
+$ docker run --publish 8080:8080 --name gphx1 --rm giphaux
+```
+
+### Local Quick Start
 
 First have a [go development environment](https://golang.org/doc/install) configured.  Once that is set up, you can install giphaux.
 
