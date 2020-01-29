@@ -539,51 +539,72 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 	if err != nil {
 		return nil, fmt.Errorf("Error opening database: %w", err)
 	}
+	if settings.Verbose { //unfortunately gormzap always logs to info, while I'd prefer debug.
+		db.LogMode(true) // also unfortunately I'm not going to take the time to reimplement it here.
+		db.SetLogger(gormzap.New(logger))
+	}
+	return &sqlDataStore{db: db, domain: settings.DomainName}, nil
+}
+
+// InitDatabase creates a new database.
+func InitDatabase(settings *shared.Configuration, logger *zap.Logger) error {
+	db, err := gorm.Open("sqlite3", settings.Database)
+	if err != nil {
+		return fmt.Errorf("Error opening database: %w", err)
+	}
 	if settings.Verbose {
 		db.LogMode(true)
 		db.SetLogger(gormzap.New(logger))
 	}
 
 	// Have gorm automatically create these tables.
-	// This would probably be a terrible idea in a production setting.
-	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{}, &Tag{})
+	if err := db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{}, &Tag{}).Error; err != nil {
+		return fmt.Errorf("Error auto creating tables: %w", err)
+	}
 
 	// Manually create the text search table and triggers to update it because gorm doesn't know how to do any of that.
 	// fts4 was giving me "logic errors" when I fiddle with docid but fts3 works. shruggy guy emoji.
-	db.Exec(`CREATE VIRTUAL TABLE IF NOT EXISTS gifsearch USING fts3(content="gifs",
-				caption, tag, rating)`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_bu BEFORE UPDATE ON gifs BEGIN
+	cmds := []string{
+		`CREATE VIRTUAL TABLE IF NOT EXISTS gifsearch USING fts3(content="gifs",
+				caption, tag, rating)`,
+		`CREATE TRIGGER IF NOT EXISTS gifs_bu BEFORE UPDATE ON gifs BEGIN
 				DELETE FROM gifsearch WHERE docid=old.rowid;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_bd BEFORE DELETE ON gifs BEGIN
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS gifs_bd BEFORE DELETE ON gifs BEGIN
 				DELETE FROM gifsearch WHERE docid=old.rowid;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_au AFTER UPDATE ON gifs
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS gifs_au AFTER UPDATE ON gifs
 				BEGIN
 				INSERT INTO gifsearch(docid, caption, rating, tag)
 				SELECT new.rowid, new.caption, new.rating, group_concat(tags.tag)
 				FROM tags WHERE tags.gif_id = new.rowid;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_ai AFTER INSERT ON gifs
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS gifs_ai AFTER INSERT ON gifs
 				BEGIN
 				INSERT INTO gifsearch(docid, caption, rating, tag)
 				SELECT new.rowid, new.caption, new.rating, group_concat(tags.tag)
 				FROM tags WHERE tags.gif_id = new.rowid;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_au AFTER UPDATE ON tags
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS tags_au AFTER UPDATE ON tags
 				BEGIN
 				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = new.gif_id)
 				WHERE docid = new.gif_id;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_ai AFTER INSERT ON tags
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS tags_ai AFTER INSERT ON tags
 				BEGIN
 				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = new.gif_id)
 				WHERE docid = new.gif_id;
-			END;`)
-	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_ad AFTER DELETE ON tags
+			END;`,
+		`CREATE TRIGGER IF NOT EXISTS tags_ad AFTER DELETE ON tags
 				BEGIN
 				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = old.gif_id)
 				WHERE docid = old.gif_id;
-			END;`)
-	return &sqlDataStore{db: db, domain: settings.DomainName}, nil
+			END;`,
+	}
+	for _, cmd := range cmds {
+		if err := db.Exec(cmd).Error; err != nil {
+			return fmt.Errorf("Error executing sql: %w", err)
+		}
+	}
+	return nil
 }

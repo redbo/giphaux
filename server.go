@@ -235,12 +235,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Run starts the server.
-func Run(settings *shared.Configuration) {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
+func Run(settings *shared.Configuration, logger *zap.Logger) {
 	s, err := NewServer(settings, logger)
 	if err != nil {
 		logger.Fatal("Error creating server", zap.Error(err))
