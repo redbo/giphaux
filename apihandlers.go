@@ -12,6 +12,7 @@ import (
 
 // These handlers are for API access and primarily return json objects.
 
+// apiSearch returns a list of gifs for the given search term and constraints.
 func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 	var limit, offset int
 	var rating string
@@ -42,6 +43,7 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// apiGifID returns a gif given its id.
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
 	gifid, err := shared.NormalizeGIFID(mux.Vars(r)["id"])
 	if err != nil {
@@ -58,6 +60,7 @@ func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// apiGifs returns a list of gifs given their comma-separated IDs.
 func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 	var limit, offset int
 	var err error
@@ -90,6 +93,7 @@ func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// apiRandomID returns a random ID.
 func (s *server) apiRandomID(w http.ResponseWriter, r *http.Request) {
 	s.apiResponse(w, http.StatusOK, map[string]interface{}{
 		"data": shared.RandomID{
@@ -98,6 +102,7 @@ func (s *server) apiRandomID(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// apiTrending returns a list of trending GIFs.
 func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
 	var limit, offset int
 	var rating string
@@ -129,8 +134,43 @@ func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// apiTranslate searches for a random gif with the given search terms.  weirdness currently has no effect.
 func (s *server) apiTranslate(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("s")
+	weirdness, err := strconv.Atoi(r.URL.Query().Get("weirdness"))
+	if err != nil || weirdness < 0 || weirdness > 10 { // if I implement it, it's definitely going to 11.
+		weirdness = 0
+	}
+	gif, err := s.ds.RandomSearch(q, weirdness)
+	if err != nil {
+		s.log(r).Error("Error getting random gif", zap.Error(err))
+		s.apiResponse(w, http.StatusNotFound, nil)
+		return
+	}
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
+		"data": gif,
+	})
 }
 
+// apiRandomSearch searches for a random gif given a tag and rating.
 func (s *server) apiRandomSearch(w http.ResponseWriter, r *http.Request) {
+	tag, err := shared.NormalizeTag(r.URL.Query().Get("tag"))
+	if err != nil {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
+	}
+	rating, err := shared.NormalizeRating(r.URL.Query().Get("tag"))
+	if err != nil {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
+	}
+	gif, err := s.ds.RandomByTag(tag, rating)
+	if err != nil {
+		s.log(r).Error("Error getting random gif by tag", zap.Error(err))
+		s.apiResponse(w, http.StatusNotFound, nil)
+		return
+	}
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
+		"data": gif,
+	})
 }
