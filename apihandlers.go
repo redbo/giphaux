@@ -33,9 +33,9 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gifs,
-		"pagination": shared.Pagination{
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{
+		Data: gifs,
+		Pagination: &shared.Pagination{
 			TotalCount: totalResults,
 			Count:      len(gifs),
 			Offset:     offset,
@@ -55,9 +55,7 @@ func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusNotFound, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gif,
-	})
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{Data: gif})
 }
 
 // apiGifs returns a list of gifs given their comma-separated IDs.
@@ -83,9 +81,9 @@ func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gifs,
-		"pagination": shared.Pagination{
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{
+		Data: gifs,
+		Pagination: &shared.Pagination{
 			TotalCount: totalResults,
 			Count:      len(gifs),
 			Offset:     offset,
@@ -95,10 +93,8 @@ func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 
 // apiRandomID returns a random ID.
 func (s *server) apiRandomID(w http.ResponseWriter, r *http.Request) {
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": shared.RandomID{
-			ID: s.ds.RandomID(),
-		},
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{
+		Data: &shared.RandomID{ID: s.ds.RandomID()},
 	})
 }
 
@@ -124,9 +120,9 @@ func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gifs,
-		"pagination": shared.Pagination{
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{
+		Data: gifs,
+		Pagination: &shared.Pagination{
 			TotalCount: totalResults,
 			Count:      len(gifs),
 			Offset:     offset,
@@ -147,9 +143,7 @@ func (s *server) apiTranslate(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusNotFound, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gif,
-	})
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{Data: gif})
 }
 
 // apiRandomSearch searches for a random gif given a tag and rating.
@@ -170,7 +164,8 @@ func (s *server) apiRandomSearch(w http.ResponseWriter, r *http.Request) {
 		s.apiResponse(w, http.StatusNotFound, nil)
 		return
 	}
-	s.apiResponse(w, http.StatusOK, map[string]interface{}{
-		"data": gif,
-	})
+	s.apiResponse(w, http.StatusOK, &shared.APIResponse{Data: gif})
+}
+
+func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 }

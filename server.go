@@ -147,12 +147,11 @@ func (s *server) error(w http.ResponseWriter, r *http.Request, code int, msg str
 }
 
 // apiResponse responds with serialized JSON.  It automatically appends a Meta object containing the response status.
-func (s *server) apiResponse(w http.ResponseWriter, code int, rsp map[string]interface{}) {
-	if rsp == nil || len(rsp) == 0 {
-		rsp = map[string]interface{}{
-			"meta": shared.Meta{Status: code, Msg: http.StatusText(code)},
-		}
+func (s *server) apiResponse(w http.ResponseWriter, code int, rsp *shared.APIResponse) {
+	if rsp == nil {
+		rsp = &shared.APIResponse{}
 	}
+	rsp.Meta = shared.Meta{Status: code, Msg: http.StatusText(code)}
 	js, err := json.Marshal(rsp)
 	if err != nil {
 		s.logger.Error("Error marshalling json", zap.Error(err))
@@ -207,7 +206,8 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	apiAuthed.HandleFunc("/gifs/translate", s.apiTranslate)
 	apiAuthed.HandleFunc("/gifs/random", s.apiRandomSearch)
 	apiAuthed.HandleFunc("/gifs/{id:[a-zA-Z0-9]+}", s.apiGifID)
-	apiAuthed.HandleFunc("/gifs", s.apiGifs)
+	apiAuthed.HandleFunc("/gifs", s.apiGifs).Methods("GET")
+	apiAuthed.HandleFunc("/gifs", s.apiUploadGif).Methods("POST")
 	apiAuthed.Use(s.authorizeAPIUser)
 
 	// Routes for authenticated web pages - cookie must be verified.

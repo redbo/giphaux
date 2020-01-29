@@ -113,3 +113,10 @@ type Meta struct {
 type RandomID struct {
 	ID string `json:"random_id"`
 }
+
+// APIResponse represents a response to the user-facing http API.
+type APIResponse struct {
+	Data       interface{} `json:"data,omitempty"`
+	Pagination *Pagination `json:"pagination,omitempty"`
+	Meta       Meta        `json:"meta"`
+}
