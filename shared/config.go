@@ -20,11 +20,11 @@ type Configuration struct {
 }
 
 // LoadConfiguration loads the config settings from the given .yml file.
-func LoadConfiguration(configFile, databaseFile string) (*Configuration, error) {
+func LoadConfiguration(configFile string) (*Configuration, error) {
 	config := &Configuration{
 		Bind:          "0.0.0.0:8080",
 		DomainName:    "localhost:8080", // domain to use for URLs.
-		Database:      databaseFile,
+		Database:      "",
 		Verbose:       true,
 		UploadLimit:   50_000_000, // 50 MB limit on uploads by default
 		MaxQueryLimit: 100,        // limit on how many results a search query can return
