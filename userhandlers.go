@@ -124,7 +124,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, _, err := r.FormFile("uploadFile")
+	file, header, err := r.FormFile("uploadFile")
 	if err != nil {
 		s.log(r).Error("Error getting gif upload", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
@@ -132,14 +132,16 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	// dear future: we could just parse the header instead of decoding the entire gif into memory?
-	img, err := gif.Decode(file)
+	img, err := gif.DecodeAll(file)
 	if err != nil {
 		s.error(w, r, http.StatusBadRequest, "Error parsing gif")
 		return
 	}
 	file.Seek(0, io.SeekStart)
-	width := img.Bounds().Dx()
-	height := img.Bounds().Dy()
+	width := img.Config.Width
+	height := img.Config.Height
+	size := int(header.Size)
+	frames := len(img.Image)
 
 	title := r.FormValue("title")
 	tags := make([]string, 0)
@@ -162,7 +164,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height)
+	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height, size, frames)
 	if err != nil {
 		s.log(r).Error("Error saving gif to database", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")

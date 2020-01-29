@@ -3,6 +3,7 @@ package sqlite
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,25 +24,34 @@ func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
 	if err := s.db.Table("users").Select("username").Where("id = ?", src.UserID).Scan(dbuser).Error; err != nil {
 		dbuser.Username = "" // sometimes this is empty on giphy too, presumably if the user deletes their account?
 	}
+	trendingDatetime := src.TrendingDatetime
+	if trendingDatetime == nil {
+		trendingDatetime = &time.Time{}
+	}
 	dst := &shared.GIF{
-		ID:             src.APIID,
-		Caption:        src.Caption,
-		Type:           src.Type,
-		URL:            fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
-		BitlyURL:       fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
-		BitlyGifURL:    fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
-		Rating:         src.Rating,
-		Tags:           strings.Split(src.Tags, ","),
-		Username:       dbuser.Username,
-		Source:         src.Source,
-		ImportDatetime: src.ImportDatetime.Format("2006-01-02 15:04:05"),
-		// TODO: SO MUCH
-		/*
-			EmbedURL         string   `json:"embed_url"`
-			ContentURL       string   `json:"content_url"`
-			TrendingDatetime string   `json:"trending_datetime"`
-			Images           Images   `json:"images"`
-		*/
+		ID:               src.APIID,
+		Caption:          src.Caption,
+		Type:             src.Type,
+		URL:              fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		BitlyURL:         fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		BitlyGifURL:      fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
+		Rating:           src.Rating,
+		Tags:             strings.Split(src.Tags, ","),
+		Username:         dbuser.Username,
+		Source:           src.Source,
+		ImportDatetime:   src.ImportDatetime.Format("2006-01-02 15:04:05"),
+		EmbedURL:         fmt.Sprintf("http://%s/embed/%s", s.domain, src.APIID),
+		ContentURL:       "",
+		TrendingDatetime: trendingDatetime.Format("2006-01-02 15:04:05"),
+		Images: shared.Images{
+			Original: &shared.Image{
+				URL:    fmt.Sprintf("http://%s/rawgif/%s.gif", s.domain, src.APIID),
+				Width:  strconv.Itoa(src.Width),
+				Height: strconv.Itoa(src.Height),
+				Size:   strconv.Itoa(src.Size),
+				Frames: strconv.Itoa(src.Frames),
+			},
+		},
 	}
 	return dst
 }
@@ -381,7 +391,7 @@ func (s *sqlDataStore) RemoveCategory(username string, title string) error {
 }
 
 // AddGIF adds a GIF to the database.
-func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string, width, height int) (*shared.GIF, error) {
+func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string, width, height, size, frames int) (*shared.GIF, error) {
 	t := time.Now()
 	fav := new(Favorite)
 	gif := new(GIF)
@@ -403,6 +413,8 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			ContentURL:       "",
 			Width:            width,
 			Height:           height,
+			Size:             size,
+			Frames:           frames,
 		}).Scan(&gif).Error; err != nil {
 			return fmt.Errorf("Error creating gif: %w", err)
 		}

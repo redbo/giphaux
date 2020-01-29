@@ -38,6 +38,8 @@ type GIF struct {
 	User             User
 	Width            int
 	Height           int
+	Size             int
+	Frames           int
 }
 
 // Category represents a user's categories for images, such as "funny" or "cats".

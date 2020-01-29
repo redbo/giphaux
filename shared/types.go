@@ -12,7 +12,7 @@ type DataStore interface {
 	GetUserByCookie(cookie string) (*User, error)
 	UserFrontpage(username string) (*FrontPageData, error)
 
-	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string, rating string, width, height int) (*GIF, error)
+	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string, rating string, width, height, size, frames int) (*GIF, error)
 	RemoveGIF(username string, gifid string) error
 	UpdateCategories(username, gifid string, categories []string) error
 
@@ -74,16 +74,16 @@ type GIF struct {
 
 // Images represents all the different types of images in the Giphy API.
 type Images struct {
-	FixedHeight            Image `json:"fixed_height"`
-	FixedHeightStill       Image `json:"fixed_height_still"`
-	FixedHeightDownsampled Image `json:"fixed_height_downsampled"`
-	FixedWidth             Image `json:"fixed_width"`
-	FixedWidthStill        Image `json:"fixed_width_still"`
-	FixedWidthDownsampled  Image `json:"fixed_width_downsampled"`
-	Downsized              Image `json:"downsized"`
-	DownsizedStill         Image `json:"downsized_still"`
-	Original               Image `json:"original"`
-	OriginalStill          Image `json:"original_still"`
+	FixedHeight            *Image `json:"fixed_height"`
+	FixedHeightStill       *Image `json:"fixed_height_still"`
+	FixedHeightDownsampled *Image `json:"fixed_height_downsampled"`
+	FixedWidth             *Image `json:"fixed_width"`
+	FixedWidthStill        *Image `json:"fixed_width_still"`
+	FixedWidthDownsampled  *Image `json:"fixed_width_downsampled"`
+	Downsized              *Image `json:"downsized"`
+	DownsizedStill         *Image `json:"downsized_still"`
+	Original               *Image `json:"original"`
+	OriginalStill          *Image `json:"original_still"`
 }
 
 // Image represents an image in the giphy API.
