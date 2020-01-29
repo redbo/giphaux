@@ -91,6 +91,11 @@ func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) apiRandomID(w http.ResponseWriter, r *http.Request) {
+	s.apiResponse(w, http.StatusOK, map[string]interface{}{
+		"data": shared.RandomID{
+			ID: s.ds.RandomID(),
+		},
+	})
 }
 
 func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
