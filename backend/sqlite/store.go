@@ -381,7 +381,7 @@ func (s *sqlDataStore) RemoveCategory(username string, title string) error {
 }
 
 // AddGIF adds a GIF to the database.
-func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string) (*shared.GIF, error) {
+func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string, width, height int) (*shared.GIF, error) {
 	t := time.Now()
 	fav := new(Favorite)
 	gif := new(GIF)
@@ -401,10 +401,12 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			Tags:             strings.Join(tags, ","),
 			UserID:           userID,
 			ContentURL:       "",
+			Width:            width,
+			Height:           height,
 		}).Scan(&gif).Error; err != nil {
 			return fmt.Errorf("Error creating gif: %w", err)
 		}
-		// automatically favorite the GIF on upload.
+		// favorite the GIF and add categories on upload.
 		if err := tx.Create(&Favorite{UserID: userID, GIFID: gif.ID}).Scan(&fav).Error; err != nil {
 			return fmt.Errorf("Error creating favorite: %w", err)
 		}
@@ -496,7 +498,7 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 
 	// Manually create the text search table and triggers to update it because
 	// gorm doesn't know how to do any of that.
-	// fts4 was giving me "logic errors" when I fiddle with docid but fts4 works. shruggy guy emoji.
+	// fts4 was giving me "logic errors" when I fiddle with docid but fts3 works. shruggy guy emoji.
 	db.Exec(`CREATE VIRTUAL TABLE IF NOT EXISTS gifsearch USING fts3(content="gifs",
 				caption, tag, rating)`)
 	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_bu BEFORE UPDATE ON gifs BEGIN

@@ -1,6 +1,7 @@
 package giphaux
 
 import (
+	"image/gif"
 	"io"
 	"net/http"
 	"os"
@@ -114,11 +115,7 @@ func (s *server) userUnfavorite(w http.ResponseWriter, r *http.Request) {
 }
 
 // userUpload is the handler for a user uploading a new GIF.
-//
-// This is the mickey mouse version of accepting file uploads.
-// I could talk at length about doing so optimally.
 func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
-	var err error
 	var rating string
 	r.ParseMultipartForm(s.uploadLimit)
 	user := getUser(r.Context())
@@ -126,6 +123,24 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		s.log(r).Error("No user?")
 		return
 	}
+
+	file, _, err := r.FormFile("uploadFile")
+	if err != nil {
+		s.log(r).Error("Error getting gif upload", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
+		return
+	}
+	defer file.Close()
+	// dear future: we could just parse the header instead of decoding the entire gif into memory?
+	img, err := gif.Decode(file)
+	if err != nil {
+		s.error(w, r, http.StatusBadRequest, "Error parsing gif")
+		return
+	}
+	file.Seek(0, io.SeekStart)
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+
 	title := r.FormValue("title")
 	tags := make([]string, 0)
 	for _, tag := range strings.Split(r.FormValue("tags"), ",") {
@@ -147,20 +162,13 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating)
+	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height)
 	if err != nil {
 		s.log(r).Error("Error saving gif to database", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")
 		return
 	}
 
-	file, _, err := r.FormFile("uploadFile")
-	if err != nil {
-		s.log(r).Error("Error getting gif upload", zap.Error(err))
-		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
-		return
-	}
-	defer file.Close()
 	filename := filepath.Join(s.gifsDir, gif.ID+".gif")
 	fp, err := os.Create(filename)
 	if err != nil {
@@ -194,7 +202,7 @@ func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.
-	// really this shouldn't be so close to the metal, what are you doing?
+	// really this shouldn't be so close to the metal, what am I doing?
 	os.Remove(filepath.Join(s.gifsDir, gifid+".gif"))
 	http.Redirect(w, r, "/user/", http.StatusSeeOther)
 }

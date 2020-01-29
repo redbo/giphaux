@@ -36,7 +36,8 @@ type GIF struct {
 	Tags             string
 	UserID           uint
 	User             User
-	// Images           Images
+	Width            int
+	Height           int
 }
 
 // Category represents a user's categories for images, such as "funny" or "cats".

@@ -30,8 +30,7 @@ type server struct {
 	logger      *zap.Logger
 }
 
-// these serve as map keys for items in a request's Context
-var (
+var ( // these serve as map keys for items in a request's Context
 	userKey   = &struct{}{}
 	loggerKey = &struct{}{}
 )
@@ -44,19 +43,12 @@ func getUser(ctx context.Context) *shared.User {
 	return nil
 }
 
+// log returns the request's logger, which is basically scoped with the request ID
 func (s *server) log(r *http.Request) *zap.Logger {
 	if v, ok := r.Context().Value(loggerKey).(*zap.Logger); ok && v != nil {
 		return v
 	}
-	return s.logger
-}
-
-// templateReload is a hack to enable for more rapid development.
-func (s *server) templateReload(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.templates, _ = s.templates.ParseGlob("templates/*.tmpl")
-		next.ServeHTTP(w, r)
-	})
+	return s.logger // if the request doesn't have a logger, just return the server logger.
 }
 
 // checkAPIKey is a middleware that authorizes a user based on the api_key query parameter.
@@ -105,6 +97,7 @@ func (s *server) authorizeWebUser(next http.Handler) http.Handler {
 	})
 }
 
+// logMiddleware adds a logger with a unique request ID to the request context, and also logs accesses.
 func (s *server) logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -229,7 +222,12 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 
 	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
-	r.Use(s.templateReload) // TODO: TEMPORARY REMOVE THIS
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			s.templates, _ = s.templates.ParseGlob("templates/*.tmpl")
+			next.ServeHTTP(w, r)
+		})
+	}) // TODO: TEMPORARY DEV STUFF, REMOVE THIS
 
 	return s, nil
 }
@@ -240,21 +238,19 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Run starts the server.
 func Run(settings *shared.Configuration) {
-	rand.Seed(time.Now().Unix())
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
 	s, err := NewServer(settings, logger)
 	if err != nil {
 		logger.Fatal("Error creating server", zap.Error(err))
 	}
 
-	// Listen and serve on 0.0.0.0:8080
 	log.Fatal((&http.Server{
-		// having i/o timeouts is always a good idea.
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  30 * time.Second,
 		Addr:         settings.Bind,
 		Handler:      s,
 	}).ListenAndServe())

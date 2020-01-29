@@ -2,14 +2,18 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os/user"
 	"path/filepath"
+	"time"
 
 	"github.com/redbo/giphaux"
 	"github.com/redbo/giphaux/shared"
 )
 
 func main() {
+	rand.Seed(time.Now().Unix())
+
 	// We look for giphaux.conf in the following order: ./giphau.conf (current working directory),
 	// 		~/giphaux.conf (home directory), /etc/giphaux.conf
 	configFiles := []string{"giphaux.conf"}

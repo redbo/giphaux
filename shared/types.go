@@ -12,7 +12,7 @@ type DataStore interface {
 	GetUserByCookie(cookie string) (*User, error)
 	UserFrontpage(username string) (*FrontPageData, error)
 
-	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string, rating string) (*GIF, error)
+	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string, rating string, width, height int) (*GIF, error)
 	RemoveGIF(username string, gifid string) error
 	UpdateCategories(username, gifid string, categories []string) error
 
