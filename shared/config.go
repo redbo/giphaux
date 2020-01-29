@@ -26,8 +26,8 @@ func LoadConfiguration(configFile string) (*Configuration, error) {
 		DomainName:    "localhost:8080", // domain to use for URLs.
 		Database:      "",
 		Verbose:       true,
-		UploadLimit:   50_000_000, // 50 MB limit on uploads by default
-		MaxQueryLimit: 100,        // limit on how many results a search query can return
+		UploadLimit:   100_000_000, // 100 MB limit on uploads by default
+		MaxQueryLimit: 100,         // limit on how many results a search query can return
 		APIServer:     true,
 		WebServer:     true,
 	}
