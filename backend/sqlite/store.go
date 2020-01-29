@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/redbo/giphaux/shared"
@@ -24,9 +23,17 @@ func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
 	if err := s.db.Table("users").Select("username").Where("id = ?", src.UserID).Scan(dbuser).Error; err != nil {
 		dbuser.Username = "" // sometimes this is empty on giphy too, presumably if the user deletes their account?
 	}
+	if src.Tags == nil {
+		src.Tags = []Tag{}
+		s.db.Table("tags").Select("tag").Where("gif_id = ?", src.ID).Scan(&src.Tags)
+	}
 	trendingDatetime := src.TrendingDatetime
 	if trendingDatetime == nil {
 		trendingDatetime = &time.Time{}
+	}
+	tags := []string{}
+	for _, t := range src.Tags {
+		tags = append(tags, t.Tag)
 	}
 	dst := &shared.GIF{
 		ID:               src.APIID,
@@ -36,7 +43,7 @@ func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
 		BitlyURL:         fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
 		BitlyGifURL:      fmt.Sprintf("http://%s/gifs/%s", s.domain, src.APIID),
 		Rating:           src.Rating,
-		Tags:             strings.Split(src.Tags, ","),
+		Tags:             tags,
 		Username:         dbuser.Username,
 		Source:           src.Source,
 		ImportDatetime:   src.ImportDatetime.Format("2006-01-02 15:04:05"),
@@ -420,6 +427,10 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 		if err != nil {
 			return fmt.Errorf("Unable to find user: %w", err)
 		}
+		dbtags := []Tag{}
+		for _, t := range tags {
+			dbtags = append(dbtags, Tag{Tag: t})
+		}
 		if err := tx.Create(&GIF{
 			Type:             "gif",
 			APIID:            fmt.Sprintf("%016x", rand.Int63()),
@@ -428,7 +439,7 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			Rating:           rating,
 			Source:           sourceURL,
 			Caption:          caption,
-			Tags:             strings.Join(tags, ","),
+			Tags:             dbtags,
 			UserID:           userID,
 			ContentURL:       "",
 			Width:            width,
@@ -485,6 +496,9 @@ func (s *sqlDataStore) RemoveGIF(username string, gifid string) error {
 		if err := tx.Exec(`DELETE FROM gifs WHERE id = ?`, dbgif.ID).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
+		if err := tx.Exec(`DELETE FROM tags WHERE gif_id = ?`, dbgif.ID).Error; err != nil {
+			return fmt.Errorf("Unable to delete GIF: %w", err)
+		}
 		if err := tx.Exec(`DELETE FROM gif_data WHERE id = ?`, dbgif.ID).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
@@ -532,7 +546,7 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 
 	// Have gorm automatically create these tables.
 	// This would probably be a terrible idea in a production setting.
-	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{})
+	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{}, &Tag{})
 
 	// Manually create the text search table and triggers to update it because
 	// gorm doesn't know how to do any of that.
@@ -546,14 +560,31 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 				DELETE FROM gifsearch WHERE docid=old.rowid;
 			END;`)
 	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_au AFTER UPDATE ON gifs
-			BEGIN
-				INSERT INTO gifsearch(docid, caption, tag, rating)
-				VALUES(new.rowid, new.caption, new.tags, new.rating);
+				BEGIN
+				INSERT INTO gifsearch(docid, caption, rating, tag)
+				SELECT new.rowid, new.caption, new.rating, group_concat(tags.tag)
+				FROM tags WHERE tags.gif_id = new.rowid;
 			END;`)
 	db.Exec(`CREATE TRIGGER IF NOT EXISTS gifs_ai AFTER INSERT ON gifs
-			BEGIN
-				INSERT INTO gifsearch(docid, caption, tag, rating)
-				VALUES(new.rowid, new.caption, new.tags, new.rating);
+				BEGIN
+				INSERT INTO gifsearch(docid, caption, rating, tag)
+				SELECT new.rowid, new.caption, new.rating, group_concat(tags.tag)
+				FROM tags WHERE tags.gif_id = new.rowid;
+			END;`)
+	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_au AFTER UPDATE ON tags
+				BEGIN
+				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = new.gif_id)
+				WHERE docid = new.gif_id;
+			END;`)
+	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_ai AFTER INSERT ON tags
+				BEGIN
+				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = new.gif_id)
+				WHERE docid = new.gif_id;
+			END;`)
+	db.Exec(`CREATE TRIGGER IF NOT EXISTS tags_ad AFTER DELETE ON tags
+				BEGIN
+				UPDATE gifsearch SET tag = (SELECT group_concat(tags.tag) FROM tags WHERE gif_id = old.gif_id)
+				WHERE docid = old.gif_id;
 			END;`)
 	return &sqlDataStore{db: db, domain: settings.DomainName}, nil
 }
