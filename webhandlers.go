@@ -57,14 +57,13 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 // register handles the form submission for new account creation.
 func (s *server) register(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	// TODO: input validation on username and password
 	username, err := shared.NormalizeUsername(r.FormValue("username"))
 	if err != nil {
 		s.error(w, r, http.StatusUnauthorized, "Invalid username")
 		return
 	}
 	password := r.FormValue("password")
-	if password == "" {
+	if password == "" { // TODO: you probably want some controls on passwords
 		s.error(w, r, http.StatusUnauthorized, "Invalid password.")
 		return
 	}

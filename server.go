@@ -195,6 +195,7 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	r.HandleFunc("/bye", s.logout)
 	r.HandleFunc("/gifs/{id}", s.gifPage)
 	r.HandleFunc("/gif/{id:[a-zA-Z0-9]+}.gif", s.rawGif)
+	r.HandleFunc("/embed/{id:[a-zA-Z0-9]+}", s.rawGif) // this could be better.
 	r.HandleFunc("/still/{id:[a-zA-Z0-9]+}.gif", s.stillGif)
 	r.HandleFunc("/search", s.search)
 

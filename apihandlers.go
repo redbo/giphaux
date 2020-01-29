@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/redbo/giphaux/shared"
 	"go.uber.org/zap"
 )
@@ -41,13 +42,15 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) apiGifID(w http.ResponseWriter, r *http.Request) {
-	gifid, err := shared.NormalizeGIFID(r.URL.Query().Get("gif_id"))
+	gifid, err := shared.NormalizeGIFID(mux.Vars(r)["id"])
 	if err != nil {
 		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
 	}
 	gif, err := s.ds.GIFByID(gifid)
 	if err != nil || gif == nil {
 		s.apiResponse(w, http.StatusNotFound, nil)
+		return
 	}
 	s.apiResponse(w, http.StatusOK, map[string]interface{}{
 		"data": gif,
