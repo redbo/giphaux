@@ -1,6 +1,0 @@
-go generate github.com/redbo/giphaux/...
-rm -f database
-go build github.com/redbo/giphaux/cmd/giphaux
-echo "RUNNING"
-./giphaux
-
