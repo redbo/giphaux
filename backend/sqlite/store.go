@@ -290,16 +290,22 @@ func (s *sqlDataStore) UserGIFInfo(username string, gifid string) (*shared.UserG
 }
 
 // GIFsByID returns a list of gifs with the given IDs.
-func (s *sqlDataStore) GIFsByID(ids []string) ([]*shared.GIF, error) {
+func (s *sqlDataStore) GIFsByID(ids []string, limit, offset int) ([]*shared.GIF, int, error) {
 	dbgifs := []GIF{}
-	if err := s.db.Model(&GIF{}).Where("api_id IN ?", ids).Scan(&dbgifs).Error; err != nil {
-		return nil, fmt.Errorf("Error fetching gif: %w", err)
+	documentCount := struct{ Count int }{0}
+	if err := s.db.Table("gifs").Select("COUNT(*) as count").Where("api_id IN ?", ids).
+		Scan(&documentCount).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting gif count by id: %w", err)
+	}
+	if err := s.db.Table("gifs").Where("api_id IN ?", ids).
+		Limit(limit).Offset(offset).Scan(&dbgifs).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error fetching gif: %w", err)
 	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {
 		gifs = append(gifs, s.gifToGIF(&gif))
 	}
-	return gifs, nil
+	return gifs, documentCount.Count, nil
 }
 
 // Search searches gifs for the given query.
