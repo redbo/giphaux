@@ -45,11 +45,16 @@ func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
 		TrendingDatetime: trendingDatetime.Format("2006-01-02 15:04:05"),
 		Images: shared.Images{
 			Original: &shared.Image{
-				URL:    fmt.Sprintf("http://%s/rawgif/%s.gif", s.domain, src.APIID),
+				URL:    fmt.Sprintf("http://%s/gif/%s.gif", s.domain, src.APIID),
 				Width:  strconv.Itoa(src.Width),
 				Height: strconv.Itoa(src.Height),
 				Size:   strconv.Itoa(src.Size),
 				Frames: strconv.Itoa(src.Frames),
+			},
+			OriginalStill: &shared.Image{
+				URL:    fmt.Sprintf("http://%s/still/%s.gif", s.domain, src.APIID),
+				Width:  strconv.Itoa(src.Width),
+				Height: strconv.Itoa(src.Height),
 			},
 		},
 	}
@@ -302,14 +307,13 @@ func (s *sqlDataStore) Search(query string, limit int, offset int, rating string
 	dbgifs := []GIF{}
 	documentCount := struct{ Count int }{0}
 	if err := s.db.Table("gifsearch").Select("COUNT(*) as count").
-		Where("gifsearch MATCH ? AND rating MATCH ?", query, rating).Scan(&documentCount).Error; err != nil {
+		Where("gifsearch MATCH ?", query).Where("rating == ?", rating).Scan(&documentCount).Error; err != nil {
 		return nil, 0, fmt.Errorf("Error getting search result count: %w", err)
 	}
 	if err := s.db.Table("gifsearch").Select("gifs.*").Joins("JOIN gifs").
-		Where("gifsearch MATCH ? AND rating MATCH ?", query, rating).Where("gifs.id = gifsearch.docid").
+		Where("gifsearch MATCH ?", query).Where("gifsearch.rating == ?", rating).Where("gifs.id = gifsearch.docid").
 		Limit(limit).Offset(offset).Scan(&dbgifs).Error; err != nil {
 		return nil, 0, fmt.Errorf("Error getting search results: %w", err)
-
 	}
 	gifs := []*shared.GIF{}
 	for _, gif := range dbgifs {

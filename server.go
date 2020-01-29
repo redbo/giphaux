@@ -194,7 +194,8 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	r.HandleFunc("/register", s.register).Methods("POST")
 	r.HandleFunc("/bye", s.logout)
 	r.HandleFunc("/gifs/{id}", s.gifPage)
-	r.HandleFunc("/rawgifs/{id:[a-zA-Z0-9]+}.gif", s.rawGif)
+	r.HandleFunc("/gif/{id:[a-zA-Z0-9]+}.gif", s.rawGif)
+	r.HandleFunc("/still/{id:[a-zA-Z0-9]+}.gif", s.stillGif)
 	r.HandleFunc("/search", s.search)
 
 	// Routes for API - api_key param must be verified.

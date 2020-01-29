@@ -74,16 +74,16 @@ type GIF struct {
 
 // Images represents all the different types of images in the Giphy API.
 type Images struct {
-	FixedHeight            *Image `json:"fixed_height"`
-	FixedHeightStill       *Image `json:"fixed_height_still"`
-	FixedHeightDownsampled *Image `json:"fixed_height_downsampled"`
-	FixedWidth             *Image `json:"fixed_width"`
-	FixedWidthStill        *Image `json:"fixed_width_still"`
-	FixedWidthDownsampled  *Image `json:"fixed_width_downsampled"`
-	Downsized              *Image `json:"downsized"`
-	DownsizedStill         *Image `json:"downsized_still"`
-	Original               *Image `json:"original"`
-	OriginalStill          *Image `json:"original_still"`
+	FixedHeight            *Image `json:"fixed_height,omitempty"`
+	FixedHeightStill       *Image `json:"fixed_height_still,omitempty"`
+	FixedHeightDownsampled *Image `json:"fixed_height_downsampled,omitempty"`
+	FixedWidth             *Image `json:"fixed_width,omitempty"`
+	FixedWidthStill        *Image `json:"fixed_width_still,omitempty"`
+	FixedWidthDownsampled  *Image `json:"fixed_width_downsampled,omitempty"`
+	Downsized              *Image `json:"downsized,omitempty"`
+	DownsizedStill         *Image `json:"downsized_still,omitempty"`
+	Original               *Image `json:"original,omitempty"`
+	OriginalStill          *Image `json:"original_still,omitempty"`
 }
 
 // Image represents an image in the giphy API.

@@ -1,6 +1,7 @@
 package giphaux
 
 import (
+	"image/gif"
 	"io"
 	"net/http"
 	"os"
@@ -135,6 +136,30 @@ func (s *server) rawGif(w http.ResponseWriter, r *http.Request) {
 	defer fp.Close()
 	w.Header().Set("Content-Type", "image/gif")
 	io.Copy(w, fp)
+}
+
+// stillGif serves the first frame of the gif with an image/gif content-type.
+func (s *server) stillGif(w http.ResponseWriter, r *http.Request) {
+	gifid, err := shared.NormalizeGIFID(mux.Vars(r)["id"])
+	if err != nil {
+		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		return
+	}
+	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.
+	fp, err := os.Open(filepath.Join(s.gifsDir, gifid+".gif"))
+	if err != nil {
+		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		return
+	}
+	defer fp.Close()
+
+	img, err := gif.DecodeAll(fp)
+	if err != nil || len(img.Image) < 1 {
+		s.error(w, r, http.StatusInternalServerError, "Error parsing gif")
+		return
+	}
+	w.Header().Set("Content-Type", "image/gif")
+	gif.Encode(w, img.Image[0], nil)
 }
 
 // search is the HTML page that displays search results for a given query.
