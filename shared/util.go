@@ -54,6 +54,7 @@ func NormalizeGIFID(id string) (string, error) {
 	return id, nil
 }
 
+// GIFInfo parses the GIF data and returns its width, height, size, and number of frames.
 func GIFInfo(filedata []byte) (int, int, int, int, error) {
 	// dear future: could we just parse the header instead of decoding the entire gif into memory?
 	img, err := gif.DecodeAll(bytes.NewBuffer(filedata))
@@ -61,5 +62,4 @@ func GIFInfo(filedata []byte) (int, int, int, int, error) {
 		return 0, 0, 0, 0, fmt.Errorf("Error parsing gif")
 	}
 	return img.Config.Width, img.Config.Height, int(len(filedata)), len(img.Image), nil
-
 }

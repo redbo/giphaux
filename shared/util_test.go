@@ -1,6 +1,9 @@
 package shared
 
-import "testing"
+import (
+	"encoding/base64"
+	"testing"
+)
 
 func TestNormalizeTag(t *testing.T) {
 	tests := []struct {
@@ -18,7 +21,7 @@ func TestNormalizeTag(t *testing.T) {
 	}
 	for _, testcase := range tests {
 		if tag, err := NormalizeTag(testcase.test); (err != nil && testcase.valid) || (err == nil && !testcase.valid) {
-			t.Logf("ValidateUsername(%q) -> %v, %v", testcase.test, tag, err)
+			t.Logf("NormalizeTag(%q) -> %v, %v", testcase.test, tag, err)
 			t.Fail()
 		}
 	}
@@ -40,14 +43,13 @@ func TestNormalizeUsername(t *testing.T) {
 	}
 	for _, testcase := range tests {
 		if username, err := NormalizeUsername(testcase.test); (err != nil && testcase.valid) || (err == nil && !testcase.valid) {
-			t.Logf("ValidateUsername(%q) -> %v, %v", testcase.test, username, err)
+			t.Logf("NormalizeUsername(%q) -> %v, %v", testcase.test, username, err)
 			t.Fail()
 		}
 	}
 }
 
 func TestNormalizeRating(t *testing.T) {
-
 	tests := []struct {
 		valid      bool
 		test       string
@@ -62,8 +64,48 @@ func TestNormalizeRating(t *testing.T) {
 	}
 	for _, testcase := range tests {
 		if username, err := NormalizeRating(testcase.test); (err != nil && testcase.valid) || (err == nil && !testcase.valid) {
-			t.Logf("ValidateRating(%q) -> %v, %v", testcase.test, username, err)
+			t.Logf("NormalizeRating(%q) -> %v, %v", testcase.test, username, err)
 			t.Fail()
 		}
+	}
+}
+
+func TestGIFID(t *testing.T) {
+	tests := []struct {
+		valid      bool
+		test       string
+		normalized string
+	}{
+		{true, "abcdefghijklmnopqrstuv", "abcdefghijklmnopqrstuv"},
+		{true, " 1234567890abc ", "1234567890abc"},
+		{false, "", ""},
+		{false, "abc 123", ""},
+		{false, "1234567890abc*", ""},
+	}
+	for _, testcase := range tests {
+		if gifid, err := NormalizeGIFID(testcase.test); (err != nil && testcase.valid) || (err == nil && !testcase.valid) {
+			t.Logf("NormalizeGIFID(%q) -> %q, %v", testcase.test, gifid, err)
+			t.Fail()
+		}
+	}
+}
+
+func TestGIFInfo(t *testing.T) {
+	gifdata, err := base64.StdEncoding.DecodeString("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
+	if err != nil {
+		t.Fail()
+	}
+	width, height, size, frames, err := GIFInfo(gifdata)
+	if err != nil {
+		t.Fail()
+	}
+	if err != nil || width != 1 || height != 1 || frames != 1 || size != 42 {
+		t.Logf("GIFInfo([stuff]) -> %v, %v, %v, %v, %v", width, height, size, frames, err)
+		t.Fail()
+	}
+	_, _, _, _, err = GIFInfo([]byte("junk"))
+	if err == nil {
+		t.Logf("GIFInfo([junk]) did not return an error")
+		t.Fail()
 	}
 }

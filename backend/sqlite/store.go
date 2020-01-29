@@ -548,8 +548,7 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 	// This would probably be a terrible idea in a production setting.
 	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{}, &Tag{})
 
-	// Manually create the text search table and triggers to update it because
-	// gorm doesn't know how to do any of that.
+	// Manually create the text search table and triggers to update it because gorm doesn't know how to do any of that.
 	// fts4 was giving me "logic errors" when I fiddle with docid but fts3 works. shruggy guy emoji.
 	db.Exec(`CREATE VIRTUAL TABLE IF NOT EXISTS gifsearch USING fts3(content="gifs",
 				caption, tag, rating)`)
