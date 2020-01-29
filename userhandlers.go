@@ -1,11 +1,8 @@
 package giphaux
 
 import (
-	"image/gif"
-	"io"
+	"io/ioutil"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/redbo/giphaux/shared"
@@ -124,25 +121,24 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, err := r.FormFile("uploadFile")
+	file, _, err := r.FormFile("uploadFile")
 	if err != nil {
 		s.log(r).Error("Error getting gif upload", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
 		return
 	}
 	defer file.Close()
-	// dear future: we could just parse the header instead of decoding the entire gif into memory?
-	img, err := gif.DecodeAll(file)
+	filedata, err := ioutil.ReadAll(file)
+	if err != nil {
+		s.log(r).Error("Error reading upload", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error reading uploaded gif")
+		return
+	}
+	width, height, frames, size, err := shared.GIFInfo(filedata)
 	if err != nil {
 		s.error(w, r, http.StatusBadRequest, "Error parsing gif")
 		return
 	}
-	file.Seek(0, io.SeekStart)
-	width := img.Config.Width
-	height := img.Config.Height
-	size := int(header.Size)
-	frames := len(img.Image)
-
 	title := r.FormValue("title")
 	tags := make([]string, 0)
 	for _, tag := range strings.Split(r.FormValue("tags"), ",") {
@@ -164,27 +160,12 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height, size, frames)
+	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height, size, frames, filedata)
 	if err != nil {
 		s.log(r).Error("Error saving gif to database", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")
 		return
 	}
-
-	filename := filepath.Join(s.gifsDir, gif.ID+".gif")
-	fp, err := os.Create(filename)
-	if err != nil {
-		s.log(r).Error("Error creating file", zap.Error(err), zap.String("path", filename))
-		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
-		return
-	}
-	defer fp.Close()
-	if _, err := io.Copy(fp, file); err != nil {
-		s.log(r).Error("Error writing to file", zap.Error(err), zap.String("path", filename))
-		s.error(w, r, http.StatusInternalServerError, "Error saving the file")
-		return
-	}
-	fp.Sync()
 
 	http.Redirect(w, r, "/gifs/"+gif.ID, http.StatusSeeOther)
 }
@@ -203,8 +184,5 @@ func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
 		s.error(w, r, http.StatusInternalServerError, "Error deleting GIF")
 		return
 	}
-	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.
-	// really this shouldn't be so close to the metal, what am I doing?
-	os.Remove(filepath.Join(s.gifsDir, gifid+".gif"))
 	http.Redirect(w, r, "/user/", http.StatusSeeOther)
 }

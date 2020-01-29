@@ -167,5 +167,43 @@ func (s *server) apiRandomSearch(w http.ResponseWriter, r *http.Request) {
 	s.apiResponse(w, http.StatusOK, &shared.APIResponse{Data: gif})
 }
 
+// apiUploadGif is the endpoint for uploading gifs to the system.
 func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
+	rating := "g" // I don't know how this gets populated on upload API
+	caption := "" // ditto
+	cats := []string{}
+
+	r.ParseForm()
+	user := getUser(r.Context())
+	if user == nil {
+		s.log(r).Error("No user?")
+		return
+	}
+	filedata := []byte(r.FormValue("file"))
+	if int64(len(filedata)) > s.uploadLimit {
+		s.apiResponse(w, http.StatusBadRequest, nil)
+		return
+	}
+	width, height, frames, size, err := shared.GIFInfo(filedata)
+	if err != nil {
+		s.error(w, r, http.StatusInternalServerError, "Error parsing gif")
+		return
+	}
+	tags := make([]string, 0)
+	for _, tag := range strings.Split(r.FormValue("tags"), ",") {
+		if nt, err := shared.NormalizeTag(tag); err == nil {
+			tags = append(tags, nt)
+		}
+	}
+	sourceURL := r.FormValue("source_image_url")
+
+	_, err = s.ds.AddGIF(user.Username, caption, tags, cats, sourceURL,
+		rating, width, height, size, frames, filedata)
+	if err != nil {
+		s.log(r).Error("Error saving gif to database", zap.Error(err))
+		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")
+		return
+	}
+
+	s.apiResponse(w, http.StatusOK, nil)
 }

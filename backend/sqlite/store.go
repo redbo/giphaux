@@ -213,6 +213,16 @@ func (s *sqlDataStore) GIFByID(id string) (*shared.GIF, error) {
 	return s.gifToGIF(dbgif), nil
 }
 
+// GIFData returns the blob of the gif's contents.
+func (s *sqlDataStore) GIFData(id string) ([]byte, error) {
+	gifdata := new(GIFData)
+	if err := s.db.Table("gif_data").Select("gif_data.*").Joins("JOIN gifs").
+		Where("gifs.api_id == ?", id).Where("gifs.id = gif_data.gif_id").Scan(&gifdata).Error; err != nil {
+		return nil, fmt.Errorf("Error getting search results: %w", err)
+	}
+	return gifdata.Data, nil
+}
+
 // RemoveFavorite removes a gif from the user's favorites.
 func (s *sqlDataStore) RemoveFavorite(username string, gifid string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
@@ -401,7 +411,7 @@ func (s *sqlDataStore) RemoveCategory(username string, title string) error {
 }
 
 // AddGIF adds a GIF to the database.
-func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string, width, height, size, frames int) (*shared.GIF, error) {
+func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sourceURL, rating string, width, height, size, frames int, filedata []byte) (*shared.GIF, error) {
 	t := time.Now()
 	fav := new(Favorite)
 	gif := new(GIF)
@@ -427,6 +437,9 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 			Frames:           frames,
 		}).Scan(&gif).Error; err != nil {
 			return fmt.Errorf("Error creating gif: %w", err)
+		}
+		if err := tx.Create(&GIFData{GIFID: gif.ID, Data: filedata}).Error; err != nil {
+			return fmt.Errorf("Error saving data: %w", err)
 		}
 		// favorite the GIF and add categories on upload.
 		if err := tx.Create(&Favorite{UserID: userID, GIFID: gif.ID}).Scan(&fav).Error; err != nil {
@@ -470,6 +483,9 @@ func (s *sqlDataStore) RemoveGIF(username string, gifid string) error {
 			return fmt.Errorf("Unable to remove favorites for gif: %w", err)
 		}
 		if err := tx.Exec(`DELETE FROM gifs WHERE id = ?`, dbgif.ID).Error; err != nil {
+			return fmt.Errorf("Unable to delete GIF: %w", err)
+		}
+		if err := tx.Exec(`DELETE FROM gif_data WHERE id = ?`, dbgif.ID).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
 		return nil
@@ -516,7 +532,7 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 
 	// Have gorm automatically create these tables.
 	// This would probably be a terrible idea in a production setting.
-	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{})
+	db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{})
 
 	// Manually create the text search table and triggers to update it because
 	// gorm doesn't know how to do any of that.

@@ -1,11 +1,9 @@
 package giphaux
 
 import (
+	"bytes"
 	"image/gif"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -126,15 +124,13 @@ func (s *server) rawGif(w http.ResponseWriter, r *http.Request) {
 		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
 		return
 	}
-	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.
-	fp, err := os.Open(filepath.Join(s.gifsDir, gifid+".gif"))
+	filedata, err := s.ds.GIFData(gifid)
 	if err != nil {
-		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		s.error(w, r, http.StatusNotFound, "Unable to find GIF.")
 		return
 	}
-	defer fp.Close()
 	w.Header().Set("Content-Type", "image/gif")
-	io.Copy(w, fp)
+	w.Write(filedata)
 }
 
 // stillGif serves the first frame of the gif with an image/gif content-type.
@@ -144,15 +140,12 @@ func (s *server) stillGif(w http.ResponseWriter, r *http.Request) {
 		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
 		return
 	}
-	// DANGER DANGER DANGER make sure the gifid is normalized before touching the filesystem.
-	fp, err := os.Open(filepath.Join(s.gifsDir, gifid+".gif"))
+	filedata, err := s.ds.GIFData(gifid)
 	if err != nil {
-		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		s.error(w, r, http.StatusNotFound, "Unable to find GIF.")
 		return
 	}
-	defer fp.Close()
-
-	img, err := gif.DecodeAll(fp)
+	img, err := gif.DecodeAll(bytes.NewBuffer(filedata))
 	if err != nil || len(img.Image) < 1 {
 		s.error(w, r, http.StatusInternalServerError, "Error parsing gif")
 		return

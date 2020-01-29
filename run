@@ -1,6 +1,4 @@
 go generate github.com/redbo/giphaux/...
-mkdir -p gifs
-rm -f gifs/*
 rm -f database
 go build github.com/redbo/giphaux/cmd/giphaux
 echo "RUNNING"

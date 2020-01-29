@@ -13,8 +13,6 @@ type Configuration struct {
 	Bind          string
 	Database      string
 	Verbose       bool
-	GifsDir       string
-	TempDir       string
 	UploadLimit   int64
 	MaxQueryLimit int
 	DomainName    string
@@ -30,9 +28,7 @@ func LoadConfiguration(files []string) (*Configuration, error) {
 		Bind:          "0.0.0.0:8080",
 		DomainName:    "localhost:8080", // domain to use for URLs.
 		Database:      filepath.Join(cwd, "database"),
-		GifsDir:       filepath.Join(cwd, "gifs"),
 		Verbose:       true,
-		TempDir:       os.TempDir(),
 		UploadLimit:   50_000_000, // 50 MB limit on uploads by default
 		MaxQueryLimit: 100,        // limit on how many results a search query can return
 	}

@@ -42,6 +42,15 @@ type GIF struct {
 	Frames           int
 }
 
+// GIFData holds the actual bytes of a GIF.
+// Denormalized to reduce i/o on things like gif searches, since these records can get big.
+type GIFData struct {
+	ID        uint `gorm:"primary_key"`
+	GIFID     uint
+	CreatedAt *time.Time
+	Data      []byte `gorm:"type:BLOB"`
+}
+
 // Category represents a user's categories for images, such as "funny" or "cats".
 type Category struct {
 	ID        uint `gorm:"primary_key"`

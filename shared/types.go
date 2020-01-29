@@ -12,7 +12,8 @@ type DataStore interface {
 	GetUserByCookie(cookie string) (*User, error)
 	UserFrontpage(username string) (*FrontPageData, error)
 
-	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string, rating string, width, height, size, frames int) (*GIF, error)
+	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string,
+		rating string, width, height, size, frames int, filedata []byte) (*GIF, error)
 	RemoveGIF(username string, gifid string) error
 	UpdateCategories(username, gifid string, categories []string) error
 
@@ -22,6 +23,7 @@ type DataStore interface {
 	RandomByTag(tag string, rating string) (*GIF, error)
 	GIFByID(id string) (*GIF, error)
 	GIFsByID(ids []string, offset, limit int) ([]*GIF, int, error)
+	GIFData(id string) ([]byte, error)
 
 	UserGIFInfo(username string, gifid string) (*UserGIFInfo, error)
 

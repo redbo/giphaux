@@ -4,7 +4,7 @@
 
     {{range .Data.Gifs}}
         <div style="width: 300px; background-color: #222; text-align: center; padding: 10px; margin: 5px; border: 1px solid #555; float: left;">
-            <a href="/gifs/{{.ID}}"><img src="/rawgifs/{{.ID}}.gif" style="max-width: 200px; max-height: 200px;"></a>
+            <a href="/gifs/{{.ID}}"><img src="/gif/{{.ID}}.gif" style="max-width: 200px; max-height: 200px;"></a>
             <p>{{.Caption}}</p>
         </div>
     {{end}}

@@ -23,8 +23,6 @@ type server struct {
 	ds          shared.DataStore
 	router      *mux.Router
 	templates   *template.Template
-	gifsDir     string
-	tmpDir      string
 	uploadLimit int64
 	queryLimit  int
 	logger      *zap.Logger
@@ -180,8 +178,6 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 		router:      r,
 		templates:   ts,
 		ds:          ds,
-		gifsDir:     settings.GifsDir,
-		tmpDir:      settings.TempDir,
 		uploadLimit: settings.UploadLimit,
 		queryLimit:  settings.MaxQueryLimit,
 		logger:      logger,
@@ -224,12 +220,12 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 
 	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			s.templates, _ = s.templates.ParseGlob("templates/*.tmpl")
-			next.ServeHTTP(w, r)
-		})
-	}) // TODO: TEMPORARY DEV STUFF, REMOVE THIS
+	//	r.Use(func(next http.Handler) http.Handler {
+	//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	//			s.templates, _ = s.templates.ParseGlob("templates/*.tmpl")
+	//			next.ServeHTTP(w, r)
+	//		})
+	//	}) // TODO: TEMPORARY DEV STUFF, REMOVE THIS
 
 	return s, nil
 }

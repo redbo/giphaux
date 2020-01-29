@@ -1,7 +1,9 @@
 package shared
 
 import (
+	"bytes"
 	"fmt"
+	"image/gif"
 	"regexp"
 	"strings"
 )
@@ -50,4 +52,14 @@ func NormalizeGIFID(id string) (string, error) {
 		return "", fmt.Errorf("Invalid gif id")
 	}
 	return id, nil
+}
+
+func GIFInfo(filedata []byte) (int, int, int, int, error) {
+	// dear future: could we just parse the header instead of decoding the entire gif into memory?
+	img, err := gif.DecodeAll(bytes.NewBuffer(filedata))
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("Error parsing gif")
+	}
+	return img.Config.Width, img.Config.Height, int(len(filedata)), len(img.Image), nil
+
 }
