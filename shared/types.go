@@ -57,21 +57,22 @@ type FrontPageData struct {
 
 // GIF contains all the fields in a data response from the Giphy API
 type GIF struct {
-	Type             string   `json:"type"`
-	ID               string   `json:"id"`
-	URL              string   `json:"url"`
-	BitlyGifURL      string   `json:"bitly_gif_url"`
-	BitlyURL         string   `json:"bitly_url"`
-	EmbedURL         string   `json:"embed_url"`
-	Username         string   `json:"username"`
-	Source           string   `json:"source"`
-	Rating           string   `json:"rating"`
-	Caption          string   `json:"caption"`
-	ContentURL       string   `json:"content_url"`
-	ImportDatetime   string   `json:"import_datetime"`
-	TrendingDatetime string   `json:"trending_datetime"`
-	Images           Images   `json:"images"`
-	Tags             []string `json:"-"`
+	Type             string    `json:"type"`
+	ID               string    `json:"id"`
+	URL              string    `json:"url"`
+	BitlyGifURL      string    `json:"bitly_gif_url"`
+	BitlyURL         string    `json:"bitly_url"`
+	EmbedURL         string    `json:"embed_url"`
+	Username         string    `json:"username"`
+	Source           string    `json:"source"`
+	Rating           string    `json:"rating"`
+	Caption          string    `json:"caption"`
+	ContentURL       string    `json:"content_url"`
+	ImportDatetime   string    `json:"import_datetime"`
+	TrendingDatetime string    `json:"trending_datetime"`
+	Images           Images    `json:"images"`
+	Analytics        Analytics `json:"analytics"`
+	Tags             []string  `json:"-"`
 }
 
 // Images represents all the different types of images in the Giphy API.
@@ -121,4 +122,16 @@ type APIResponse struct {
 	Data       interface{} `json:"data,omitempty"`
 	Pagination *Pagination `json:"pagination,omitempty"`
 	Meta       Meta        `json:"meta"`
+}
+
+// AnalyticsURL wraps a URL in the analytics API response object.
+type AnalyticsURL struct {
+	URL string `json:"url"`
+}
+
+// Analytics is an API response object that contains callback links.
+type Analytics struct {
+	OnClick AnalyticsURL `json:"onclick"`
+	OnLoad  AnalyticsURL `json:"onload"`
+	OnSent  AnalyticsURL `json:"onsent"`
 }

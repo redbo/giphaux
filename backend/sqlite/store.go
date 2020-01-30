@@ -64,6 +64,11 @@ func (s *sqlDataStore) gifToGIF(src *GIF) *shared.GIF {
 				Height: strconv.Itoa(src.Height),
 			},
 		},
+		Analytics: shared.Analytics{
+			OnClick: shared.AnalyticsURL{URL: fmt.Sprintf("http://%s/analytics?gif_id=%s&action=CLICK", s.domain, src.APIID)},
+			OnSent:  shared.AnalyticsURL{URL: fmt.Sprintf("http://%s/analytics?gif_id=%s&action=SENT", s.domain, src.APIID)},
+			OnLoad:  shared.AnalyticsURL{URL: fmt.Sprintf("http://%s/analytics?gif_id=%s&action=LOAD", s.domain, src.APIID)},
+		},
 	}
 	return dst
 }

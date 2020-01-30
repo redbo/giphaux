@@ -146,16 +146,16 @@
     <div id="loginform">
         <form class="basicform" action="/login" method="post">
             <h2>Log In</h2>
-            <div class="row"><div class="field">Username</div><input type="text" name="username"></div>
-            <div class="row"><div class="field">Password</div><input type="text" name="password"></div>
+            <div class="row"><div class="field">Username</div><input type="text" name="username" id="loginusername"></div>
+            <div class="row"><div class="field">Password</div><input type="password" name="password"></div>
             <div class="row"><div class="field">Submit</div><input type="submit" value="Log In &rarr;" name="submit"></div>
         </form>
     </div>
     <div id="registerform">
         <form class="basicform" action="/register" method="post">
             <h2>Create User</h2>
-            <div class="row"><div class="field">Username</div><input type="text" name="username"></div>
-            <div class="row"><div class="field">Password</div><input type="text" name="password"></div>
+            <div class="row"><div class="field">Username</div><input type="text" name="username" id="registerusername"></div>
+            <div class="row"><div class="field">Password</div><input type="password" name="password"></div>
             <div class="row"><div class="field">Submit</div><input type="submit" value="Log In &rarr;" name="submit"></div>
         </form>
     </div>
@@ -165,8 +165,8 @@
             <a href="/bye" class="formlink">Logout</a>
             <a href="/user/" class="formlink">Home: {{.User.Username}}</a>
         {{else}}
-            <a class="formlink" onClick="javascript:getElementById('loginform').style.display='block';">Log In</a>
-            <a class="formlink" onClick="javascript:getElementById('registerform').style.display='block';">Register</a>
+            <a class="formlink" onClick="javascript:getElementById('loginform').style.display='block';getElementById('loginusername').focus();">Log In</a>
+            <a class="formlink" onClick="javascript:getElementById('registerform').style.display='block';;getElementById('registerusername').focus();">Register</a>
         {{end}}
     </div>
     <div class="content-border"></div>

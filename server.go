@@ -194,6 +194,7 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	r.HandleFunc("/embed/{id:[a-zA-Z0-9]+}", s.rawGif) // this could be better.
 	r.HandleFunc("/still/{id:[a-zA-Z0-9]+}.gif", s.stillGif)
 	r.HandleFunc("/search", s.search)
+	r.HandleFunc("/analytics", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }) // TODO: sell out our users
 
 	// Routes for API - api_key param must be verified.
 	apiAuthed := r.PathPrefix("/v1").Subrouter()
@@ -221,12 +222,6 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 
 	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
-	//	r.Use(func(next http.Handler) http.Handler {
-	//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	//			s.templates, _ = s.templates.ParseGlob("templates/*.tmpl")
-	//			next.ServeHTTP(w, r)
-	//		})
-	//	}) // TODO: TEMPORARY DEV STUFF, REMOVE THIS
 
 	return s, nil
 }
