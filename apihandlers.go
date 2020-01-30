@@ -23,7 +23,7 @@ func (s *server) apiSearch(w http.ResponseWriter, r *http.Request) {
 	if rating, err = shared.NormalizeRating(r.URL.Query().Get("rating")); err != nil {
 		rating = "g" // default search to a "g" rating
 	}
-	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit < 0 || limit > s.queryLimit {
+	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit <= 0 || limit > s.queryLimit {
 		limit = s.queryLimit
 	}
 	if offset, err = strconv.Atoi(r.URL.Query().Get("offset")); err != nil || offset < 0 {
@@ -65,13 +65,13 @@ func (s *server) apiGifs(w http.ResponseWriter, r *http.Request) {
 	var limit, offset int
 	var err error
 	gifids := []string{}
-	for _, gid := range strings.Split(mux.Vars(r)["ids"], ",") {
+	for _, gid := range strings.Split(r.URL.Query().Get("ids"), ",") {
 		gifid, err := shared.NormalizeGIFID(gid)
 		if err == nil {
 			gifids = append(gifids, gifid)
 		}
 	}
-	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit < 0 || limit > s.queryLimit {
+	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit <= 0 || limit > s.queryLimit {
 		limit = s.queryLimit
 	}
 	if offset, err = strconv.Atoi(r.URL.Query().Get("offset")); err != nil || offset < 0 {
@@ -109,12 +109,10 @@ func (s *server) apiTrending(w http.ResponseWriter, r *http.Request) {
 		rating = "g" // default search to a "g" rating
 	}
 	if limit, err = strconv.Atoi(r.URL.Query().Get("limit")); err != nil || limit < 0 || limit > s.queryLimit {
-		s.apiResponse(w, http.StatusBadRequest, nil)
-		return
+		limit = s.queryLimit
 	}
 	if offset, err = strconv.Atoi(r.URL.Query().Get("offset")); err != nil || offset < 0 {
-		s.apiResponse(w, http.StatusBadRequest, nil)
-		return
+		offset = 0
 	}
 	gifs, totalResults, err := s.ds.Trending(limit, offset, rating)
 	if err != nil {
@@ -157,8 +155,7 @@ func (s *server) apiRandomSearch(w http.ResponseWriter, r *http.Request) {
 	}
 	rating, err := shared.NormalizeRating(r.URL.Query().Get("tag"))
 	if err != nil {
-		s.apiResponse(w, http.StatusBadRequest, nil)
-		return
+		rating = "g"
 	}
 	gif, err := s.ds.RandomByTag(tag, rating)
 	if err != nil {
@@ -179,7 +176,7 @@ func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 	var file io.ReadCloser
 	var err error
 
-	r.ParseForm()
+	r.ParseMultipartForm(s.uploadLimit)
 	user := getUser(r.Context())
 	if user == nil {
 		s.log(r).Error("No user?")
@@ -208,7 +205,7 @@ func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	width, height, frames, size, err := shared.GIFInfo(filedata)
+	width, height, size, frames, err := shared.GIFInfo(filedata)
 	if err != nil {
 		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return

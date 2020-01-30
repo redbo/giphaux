@@ -123,8 +123,7 @@ func (s *server) logMiddleware(next http.Handler) http.Handler {
 
 // template executes a template, filling in standard data.
 func (s *server) template(w http.ResponseWriter, r *http.Request, name string, data interface{}) {
-	t := s.templates.Lookup(name)
-	err := t.Execute(w, map[string]interface{}{
+	err := s.templates.ExecuteTemplate(w, name, map[string]interface{}{
 		// this passes a lot of sensitive user info to all of the templates all the time, which feels like a large surface.
 		// something to think about later.
 		"User":  getUser(r.Context()),
@@ -139,12 +138,7 @@ func (s *server) template(w http.ResponseWriter, r *http.Request, name string, d
 // error returns an error page.
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, msg string) {
 	w.WriteHeader(code)
-	t := s.templates.Lookup("error.tmpl")
-	t.Execute(w, map[string]interface{}{
-		"User": getUser(r.Context()),
-		"Msg":  msg,
-		"Data": map[string]interface{}{},
-	})
+	s.template(w, r, "error.tmpl", map[string]interface{}{"Msg": msg})
 }
 
 // apiResponse responds with serialized JSON.  It automatically appends a Meta object containing the response status.

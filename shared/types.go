@@ -22,7 +22,7 @@ type DataStore interface {
 	RandomSearch(q string, weirdness int) (*GIF, error)
 	RandomByTag(tag string, rating string) (*GIF, error)
 	GIFByID(id string) (*GIF, error)
-	GIFsByID(ids []string, offset, limit int) ([]*GIF, int, error)
+	GIFsByID(ids []string, limit, offset int) ([]*GIF, int, error)
 	GIFData(id string) ([]byte, error)
 
 	UserGIFInfo(username string, gifid string) (*UserGIFInfo, error)
