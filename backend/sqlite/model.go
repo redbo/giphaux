@@ -45,8 +45,7 @@ type GIF struct {
 // GIFData holds the actual bytes of a GIF.
 // Denormalized to reduce i/o on things like gif searches, since these records can get big.
 type GIFData struct {
-	ID        uint `gorm:"primary_key"`
-	GIFID     uint
+	GIFID     uint `gorm:"primary_key"`
 	CreatedAt *time.Time
 	Data      []byte `gorm:"type:BLOB"`
 }

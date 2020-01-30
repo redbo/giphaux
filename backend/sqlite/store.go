@@ -124,7 +124,7 @@ func usernameToID(db *gorm.DB, username string) (uint, error) {
 
 // gifToID is a utility function for grabbing a gif's database ID by gifid
 func gifToID(db *gorm.DB, gifid string) (uint, error) {
-	dbgif := new(GIF)
+	dbgif := &struct{ ID uint }{}
 	if err := db.Table("gifs").Select("id").Where("api_id = ?", gifid).Scan(dbgif).Error; err != nil {
 		return 0, fmt.Errorf("Unable to find gif: %s", err)
 	}
@@ -295,7 +295,7 @@ func (s *sqlDataStore) UserGIFInfo(username string, gifid string) (*shared.UserG
 	}{}
 	if r := s.db.Model(dbfav).Where("user_id = ? AND gif_id = ?", userID, dbgif.ID).Scan(dbfav); r.Error == nil {
 		favorited = true
-		s.db.Raw(`SELECT c.Title as title,cf.ID,cf.ID IS NOT NULL as favorited
+		s.db.Raw(`SELECT c.Title as title, cf.ID IS NOT NULL as favorited
 					FROM categories c LEFT JOIN categorized_favorites cf ON (cf.category_id=c.id AND cf.favorite_id = ?)
 					WHERE c.user_id = ?`,
 			dbfav.ID, userID).Scan(&categories)
@@ -487,24 +487,23 @@ func (s *sqlDataStore) RemoveGIF(username string, gifid string) error {
 		if err != nil {
 			return fmt.Errorf("Unable to find user: %w", err)
 		}
-		dbgif := new(GIF)
-		if r := tx.Model(dbgif).Where("api_id = ? AND user_id = ?", gifid, userID).Scan(dbgif); r.Error != nil {
-			return fmt.Errorf("Error finding gif: %w", err)
+		dbgif := &struct{ ID uint }{}
+		if err := tx.Table("gifs").Select("id").Where("user_id = ?", userID).Where("api_id = ?", gifid).Scan(dbgif).Error; err != nil {
+			return fmt.Errorf("Unable to find gif: %s", err)
 		}
-		if err := tx.Exec(`DELETE FROM categorized_favorites
-							WHERE favorite_id IN (SELECT id from favorites WHERE gif_id = ?)`, dbgif.ID).Error; err != nil {
+		if err := tx.Where("favorite_id IN (SELECT id from favorites WHERE gif_id = ?)", dbgif.ID).Delete(&CategorizedFavorite{}).Error; err != nil {
 			return fmt.Errorf("Unable to remove categorizations for gif: %w", err)
 		}
-		if err := tx.Exec(`DELETE FROM favorites WHERE gif_id = ?`, dbgif.ID).Error; err != nil {
+		if err := tx.Where("gif_id = ?", dbgif.ID).Delete(&Favorite{}).Error; err != nil {
 			return fmt.Errorf("Unable to remove favorites for gif: %w", err)
 		}
-		if err := tx.Exec(`DELETE FROM gifs WHERE id = ?`, dbgif.ID).Error; err != nil {
+		if err := tx.Where("gif_id = ?", dbgif.ID).Delete(&Tag{}).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
-		if err := tx.Exec(`DELETE FROM tags WHERE gif_id = ?`, dbgif.ID).Error; err != nil {
+		if err := tx.Where("gif_id = ?", dbgif.ID).Delete(&GIFData{}).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
-		if err := tx.Exec(`DELETE FROM gif_data WHERE id = ?`, dbgif.ID).Error; err != nil {
+		if err := tx.Where("id = ?", dbgif.ID).Delete(&GIF{}).Error; err != nil {
 			return fmt.Errorf("Unable to delete GIF: %w", err)
 		}
 		return nil

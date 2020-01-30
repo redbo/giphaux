@@ -104,6 +104,8 @@ func (s *server) logMiddleware(next http.Handler) http.Handler {
 			zap.String("RequestID", fmt.Sprintf("%x", rand.Int63())),
 		)
 		ctx := context.WithValue(r.Context(), loggerKey, logger)
+		// I get weird error messages about httpsnoop setting superfluous response codes, which
+		// makes me think it is buggy, but I don't really want to re-implement it right now.
 		m := httpsnoop.CaptureMetrics(next, w, r.WithContext(ctx))
 		logger.Info("ACCESS",
 			zap.String("method", r.Method),
