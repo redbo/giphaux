@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/felixge/httpsnoop"
@@ -73,20 +70,7 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 			user, _ = s.ds.GetUserByCookie(cookie.Value)
 		}
 		if user == nil {
-			if r.Method == "POST" && r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-				// this is bad.  but...
-				body, err := ioutil.ReadAll(io.LimitReader(r.Body, s.uploadLimit*3))
-				if err != nil {
-					http.Error(w, "Bad Request", 400)
-				}
-				r.PostForm, err = url.ParseQuery(string(body))
-				if err != nil {
-					http.Error(w, "Bad Request", 400)
-				}
-				r.ParseForm()
-			} else {
-				r.ParseMultipartForm(s.uploadLimit)
-			}
+			r.ParseMultipartForm(s.uploadLimit)
 			apiKey := r.FormValue("api_key")
 			if apiKey != "" {
 				user, _ = s.ds.GetUserByKey(apiKey)

@@ -1,6 +1,8 @@
 package giphaux
 
 import (
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -172,6 +174,10 @@ func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 	rating := "g" // I don't know how this gets populated on upload API
 	caption := "" // ditto
 	cats := []string{}
+	var filedata []byte
+	var sourceURL string
+	var file io.ReadCloser
+	var err error
 
 	r.ParseForm()
 	user := getUser(r.Context())
@@ -179,14 +185,32 @@ func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 		s.log(r).Error("No user?")
 		return
 	}
-	filedata := []byte(r.FormValue("file"))
-	if int64(len(filedata)) > s.uploadLimit {
+
+	if sourceURL = r.FormValue("source_image_url"); sourceURL != "" {
+		resp, err := http.Get(sourceURL)
+		if err != nil {
+			s.apiResponse(w, http.StatusBadRequest, nil)
+			return
+		}
+		file = resp.Body
+	} else if file, _, err = r.FormFile("file"); err != nil {
+		s.log(r).Error("Error getting gif upload", zap.Error(err))
+		s.apiResponse(w, http.StatusInternalServerError, nil)
+		return
+	} else {
 		s.apiResponse(w, http.StatusBadRequest, nil)
 		return
 	}
+	defer file.Close()
+	if filedata, err = ioutil.ReadAll(file); err != nil {
+		s.log(r).Error("Error reading upload", zap.Error(err))
+		s.apiResponse(w, http.StatusInternalServerError, nil)
+		return
+	}
+
 	width, height, frames, size, err := shared.GIFInfo(filedata)
 	if err != nil {
-		s.error(w, r, http.StatusInternalServerError, "Error parsing gif")
+		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
 	tags := make([]string, 0)
@@ -195,13 +219,11 @@ func (s *server) apiUploadGif(w http.ResponseWriter, r *http.Request) {
 			tags = append(tags, nt)
 		}
 	}
-	sourceURL := r.FormValue("source_image_url")
 
-	_, err = s.ds.AddGIF(user.Username, caption, tags, cats, sourceURL,
-		rating, width, height, size, frames, filedata)
-	if err != nil {
+	if _, err = s.ds.AddGIF(user.Username, caption, tags, cats, sourceURL,
+		rating, width, height, size, frames, filedata); err != nil {
 		s.log(r).Error("Error saving gif to database", zap.Error(err))
-		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")
+		s.apiResponse(w, http.StatusInternalServerError, nil)
 		return
 	}
 
