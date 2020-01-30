@@ -139,7 +139,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		s.error(w, r, http.StatusBadRequest, "Error parsing gif")
 		return
 	}
-	title := r.FormValue("title")
+	caption := r.FormValue("caption")
 	tags := make([]string, 0)
 	for _, tag := range strings.Split(r.FormValue("tags"), ",") {
 		if nt, err := shared.NormalizeTag(tag); err == nil {
@@ -148,8 +148,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	sourceURL := ""
 	if rating, err = shared.NormalizeRating(r.FormValue("rating")); err != nil {
-		s.error(w, r, http.StatusBadRequest, "Invalid rating")
-		return
+		rating = "g"
 	}
 	cats := []string{}
 	for key := range r.Form {
@@ -160,7 +159,7 @@ func (s *server) userUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	gif, err := s.ds.AddGIF(user.Username, title, tags, cats, sourceURL, rating, width, height, size, frames, filedata)
+	gif, err := s.ds.AddGIF(user.Username, caption, tags, cats, sourceURL, rating, width, height, size, frames, filedata)
 	if err != nil {
 		s.log(r).Error("Error saving gif to database", zap.Error(err))
 		s.error(w, r, http.StatusInternalServerError, "Error persisting gif to database")

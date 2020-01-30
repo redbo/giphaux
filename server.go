@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,10 +21,10 @@ import (
 type server struct {
 	ds          shared.DataStore
 	router      *mux.Router
-	templates   *template.Template
 	uploadLimit int64
 	queryLimit  int
 	logger      *zap.Logger
+	templates   shared.TemplateExecuter
 }
 
 var ( // these serve as map keys for items in a request's Context
@@ -159,16 +158,7 @@ func (s *server) apiResponse(w http.ResponseWriter, code int, rsp *shared.APIRes
 }
 
 // NewServer creates a new instance of the server.
-func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler, error) {
-	ds, err := sqlite.OpenStore(settings, logger)
-	if err != nil {
-		return nil, err
-	}
-	ts, err := templates.LoadTemplates()
-	if err != nil {
-		return nil, err
-	}
-
+func NewServer(settings *shared.Configuration, logger *zap.Logger, ds shared.DataStore, ts shared.TemplateExecuter) http.Handler {
 	// create the top-level router.
 	r := mux.NewRouter()
 	s := &server{
@@ -219,7 +209,7 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger) (http.Handler
 	r.Use(s.logMiddleware)
 	r.Use(s.authenticateUser)
 
-	return s, nil
+	return s
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -228,11 +218,15 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // Run starts the server.
 func Run(settings *shared.Configuration, logger *zap.Logger) {
-	s, err := NewServer(settings, logger)
+	ts, err := templates.LoadTemplates()
 	if err != nil {
-		logger.Fatal("Error creating server", zap.Error(err))
+		logger.Fatal("Error loading templates", zap.Error(err))
 	}
-
+	ds, err := sqlite.OpenStore(settings, logger)
+	if err != nil {
+		logger.Fatal("Error connecting to database", zap.Error(err))
+	}
+	s := NewServer(settings, logger, ds, ts)
 	log.Fatal((&http.Server{
 		WriteTimeout: 30 * time.Second,
 		ReadTimeout:  30 * time.Second,

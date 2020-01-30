@@ -1,5 +1,7 @@
 package shared
 
+import "io"
+
 // DataStore is the controller API for interacting with backend app data.
 // Sqlite is the only implementation, but I've tried to keep the interface
 // non-leaky and abstract.  Note that this never works.
@@ -15,7 +17,6 @@ type DataStore interface {
 	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string,
 		rating string, width, height, size, frames int, filedata []byte) (*GIF, error)
 	RemoveGIF(username string, gifid string) error
-	UpdateCategories(username, gifid string, categories []string) error
 
 	Search(query string, limit int, offset int, rating string) ([]*GIF, int, error)
 	Trending(limit int, off int, rating string) ([]*GIF, int, error)
@@ -29,9 +30,15 @@ type DataStore interface {
 
 	AddCategory(username string, title string) error
 	RemoveCategory(username string, category string) error
+	UpdateCategories(username, gifid string, categories []string) error
 
 	AddFavorite(username string, gifid string, categories []string) error
 	RemoveFavorite(username string, gifid string) error
+}
+
+// TemplateExecuter is an object that renders templates based on name and data.
+type TemplateExecuter interface {
+	ExecuteTemplate(io.Writer, string, interface{}) error
 }
 
 // User represents a user in the system.

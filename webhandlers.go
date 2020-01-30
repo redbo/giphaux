@@ -38,8 +38,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) {
 		s.error(w, r, http.StatusUnauthorized, "Unable to authenticate user.")
 		return
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		s.error(w, r, http.StatusUnauthorized, "Unable to authenticate user.")
 		return
 	}
@@ -87,6 +86,7 @@ func (s *server) register(w http.ResponseWriter, r *http.Request) {
 // logout logs a user out of their account.
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 	// overwrite session cookie with an empty one that expires immediately
+	// TODO: clear session id from database
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session",
 		Value:    "",
