@@ -17,7 +17,12 @@ import (
 
 // frontPage is the front page of the website, aka "/"
 func (s *server) frontPage(w http.ResponseWriter, r *http.Request) {
-	s.template(w, r, "index.tmpl", nil)
+	data, err := s.ds.Frontpage()
+	if err != nil {
+		s.error(w, r, http.StatusInternalServerError, "Error getting index data")
+		return
+	}
+	s.template(w, r, "index.tmpl", data)
 }
 
 // login handles the form submssions for a user that is logging in.
@@ -169,10 +174,14 @@ func (s *server) search(w http.ResponseWriter, r *http.Request) {
 	}
 	data := map[string]interface{}{ // build a datastructure to pass to the template
 		"Gifs":         gifs,
+		"Gifcount":     len(gifs),
 		"TotalResults": totalresults,
+		"PrevOffset":   offset - limit,
+		"NextOffset":   offset + len(gifs),
 		"Offset":       offset,
 		"Limit":        limit,
 		"Query":        q,
+		"Start":        offset + 1,
 	}
 	s.template(w, r, "search.tmpl", data)
 }

@@ -76,6 +76,21 @@ func (mr *MockDataStoreMockRecorder) AddGIF(arg0, arg1, arg2, arg3, arg4, arg5, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGIF", reflect.TypeOf((*MockDataStore)(nil).AddGIF), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
 }
 
+// Frontpage mocks base method
+func (m *MockDataStore) Frontpage() (*shared.FrontPageData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Frontpage")
+	ret0, _ := ret[0].(*shared.FrontPageData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Frontpage indicates an expected call of Frontpage
+func (mr *MockDataStoreMockRecorder) Frontpage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Frontpage", reflect.TypeOf((*MockDataStore)(nil).Frontpage))
+}
+
 // GIFByID mocks base method
 func (m *MockDataStore) GIFByID(arg0 string) (*shared.GIF, error) {
 	m.ctrl.T.Helper()

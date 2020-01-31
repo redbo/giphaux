@@ -34,14 +34,21 @@
 </div>
 
 <div id="HomeTab" class="tabcontent">
+    <h3><a href="/user/uploads">Uploads</a></h3>
+    {{template "showgifs.tmpl" .Data.Categories.Uploads}}
+    <h3><a href="/user/favorites">Favorites</a></h3>
+    {{template "showgifs.tmpl" .Data.Categories.Favorites}}
     {{range $key, $value := .Data.Categories}}
-        <h3>{{$key}}</h3>
-                <div style="overflow: hidden; white-space: nowrap; position: relative;">
-                <div style="position: absolute; right: 0px; width: 50px; height: 100%; background: linear-gradient(90deg, transparent, #000);"></div>
-                {{range $value}}
-                    <a href="/gifs/{{.ID}}"><img src="/gif/{{.ID}}.gif" style="max-width: 200px; max-height: 200px; margin-right: 5px;"></a>
+        {{with $key}}
+            {{if eq . "Uploads" }}
+            {{else}}
+                {{if eq . "Favorites"}}
+                {{else}}
+                    <h3><a href="/category/{{.}}">{{.}}</a></h3>
+                    {{template "showgifs.tmpl" $value}}
                 {{end}}
-            </div>
+            {{end}}
+        {{end}}
     {{end}}
 </div>
 

@@ -177,6 +177,25 @@ func (s *sqlDataStore) GetUserByCookie(cookie string) (*shared.User, error) {
 }
 
 // UserFrontpage returns the lists of gifs and things needed to show the user's home page.
+func (s *sqlDataStore) Frontpage() (*shared.FrontPageData, error) {
+	fp := &shared.FrontPageData{Categories: make(map[string][]*shared.GIF)}
+	fp.Categories["Uploads"] = make([]*shared.GIF, 0)
+	gifs := []GIF{}
+	if err := s.db.Table("gifs").Limit(6).Where("rating = ?", "g").Order("id desc").Scan(&gifs).Error; err != nil {
+		return nil, fmt.Errorf("Error getting uploads: %w", err)
+	}
+	for _, gif := range gifs {
+		fp.Categories["Uploads"] = append(fp.Categories["Uploads"], s.gifToGIF(&gif))
+	}
+	var err error
+	fp.Categories["Trending"], _, err = s.Trending(6, 0, "g")
+	if err != nil {
+		return nil, fmt.Errorf("Error getting trending: %w", err)
+	}
+	return fp, nil
+}
+
+// UserFrontpage returns the lists of gifs and things needed to show the user's home page.
 func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, error) {
 	fp := &shared.FrontPageData{Categories: make(map[string][]*shared.GIF)}
 	userID, err := usernameToID(s.db, username)
@@ -190,13 +209,13 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 		}
 	}
 	gifs := []GIF{}
-	if err := s.db.Table("gifs").Limit(8).Order("id desc").Where("user_id = ?", userID).Scan(&gifs).Error; err != nil {
+	if err := s.db.Table("gifs").Limit(3).Order("id desc").Where("user_id = ?", userID).Scan(&gifs).Error; err != nil {
 		return nil, fmt.Errorf("Error getting uploads: %w", err)
 	}
 	addResults("Uploads", gifs)
 
 	gifs = gifs[:]
-	if err := s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE g.user_id=? ORDER BY f.id DESC LIMIT 8", userID).Scan(&gifs).Error; err != nil {
+	if err := s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE g.user_id=? ORDER BY f.id DESC LIMIT 3", userID).Scan(&gifs).Error; err != nil {
 		return nil, fmt.Errorf("Error getting favorites: %w", err)
 	}
 	addResults("Favorites", gifs)
@@ -208,7 +227,7 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 	for _, cat := range cats {
 		gifs = gifs[:]
 		if err := s.db.Raw(`SELECT g.* FROM (gifs g JOIN favorites f ON f.gif_id = g.id) JOIN categorized_favorites cf on f.id = cf.favorite_id
-					WHERE cf.category_id = ? LIMIT 8`, cat.ID).Scan(&gifs).Error; err != nil {
+					WHERE cf.category_id = ? LIMIT 3`, cat.ID).Scan(&gifs).Error; err != nil {
 			return nil, fmt.Errorf("Error fetching categorized favorites: %w", err)
 		}
 		addResults(cat.Title, gifs)
@@ -353,12 +372,12 @@ func (s *sqlDataStore) Search(query string, limit int, offset int, rating string
 // Trending returns the most recent trending gifs.
 func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GIF, int, error) {
 	documentCount := struct{ Count int }{0}
-	if err := s.db.Table("gifs").Select("COUNT(*) as count").Where("trending IS NOT NULL").Scan(&documentCount).Error; err != nil {
+	if err := s.db.Table("gifs").Select("COUNT(*) as count").Where("trending_datetime IS NOT NULL").Scan(&documentCount).Error; err != nil {
 		return nil, 0, fmt.Errorf("Error getting trending count: %w", err)
 	}
 	gifs := []GIF{}
 	if err := s.db.Table("gifs").Limit(limit).Offset(off).
-		Where("trending IS NOT NULL").Order("trending desc").Scan(&gifs).Error; err != nil {
+		Where("trending_datetime IS NOT NULL").Order("trending_datetime desc").Scan(&gifs).Error; err != nil {
 		return nil, 0, fmt.Errorf("Error fetching gifs: %w", err)
 	}
 	rgifs := make([]*shared.GIF, 0)

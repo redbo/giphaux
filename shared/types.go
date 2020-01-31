@@ -13,6 +13,7 @@ type DataStore interface {
 	GetUserByKey(key string) (*User, error)
 	GetUserByCookie(cookie string) (*User, error)
 	UserFrontpage(username string) (*FrontPageData, error)
+	Frontpage() (*FrontPageData, error)
 
 	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string,
 		rating string, width, height, size, frames int, filedata []byte) (*GIF, error)

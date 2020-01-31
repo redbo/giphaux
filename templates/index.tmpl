@@ -1,5 +1,11 @@
 {{template "header.tmpl" .}}
 
-Some trending images!  Trendages!
+<h3>Trending</h3>
+
+{{template "showgifs.tmpl" .Data.Categories.Trending}}
+
+<h3>Recent Uploads</h3>
+
+{{template "showgifs.tmpl" .Data.Categories.Uploads}}
 
 {{template "footer.tmpl" .}}
