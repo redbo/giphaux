@@ -358,3 +358,19 @@ func (mr *MockDataStoreMockRecorder) UserGIFInfo(arg0, arg1 interface{}) *gomock
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserGIFInfo", reflect.TypeOf((*MockDataStore)(nil).UserGIFInfo), arg0, arg1)
 }
+
+// UserUploads mocks base method
+func (m *MockDataStore) UserUploads(arg0 string, arg1, arg2 int) ([]*shared.GIF, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserUploads", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*shared.GIF)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UserUploads indicates an expected call of UserUploads
+func (mr *MockDataStoreMockRecorder) UserUploads(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserUploads", reflect.TypeOf((*MockDataStore)(nil).UserUploads), arg0, arg1, arg2)
+}

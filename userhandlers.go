@@ -3,6 +3,7 @@ package giphaux
 import (
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/redbo/giphaux/shared"
@@ -21,6 +22,32 @@ func (s *server) userIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.template(w, r, "user.tmpl", fp)
+}
+
+// search is the HTML page that displays search results for a given query.
+func (s *server) userUploads(w http.ResponseWriter, r *http.Request) {
+	user := getUser(r.Context())
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+	limit := 12
+	gifs, totalresults, err := s.ds.UserUploads(user.Username, limit, offset)
+	if err != nil {
+		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		return
+	}
+	data := map[string]interface{}{ // build a datastructure to pass to the template
+		"Gifs":         gifs,
+		"Gifcount":     len(gifs),
+		"TotalResults": totalresults,
+		"PrevOffset":   offset - limit,
+		"NextOffset":   offset + len(gifs),
+		"Offset":       offset,
+		"Limit":        limit,
+		"Start":        offset + 1,
+	}
+	s.template(w, r, "search.tmpl", data)
 }
 
 // userAddCategory is the handler for a user adding a category.

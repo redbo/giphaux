@@ -36,8 +36,10 @@
 <div id="HomeTab" class="tabcontent">
     <h3><a href="/user/uploads">Uploads</a></h3>
     {{template "showgifs.tmpl" .Data.Categories.Uploads}}
+
     <h3><a href="/user/favorites">Favorites</a></h3>
     {{template "showgifs.tmpl" .Data.Categories.Favorites}}
+
     {{range $key, $value := .Data.Categories}}
         {{with $key}}
             {{if eq . "Uploads" }}
@@ -58,7 +60,7 @@
         <div class="row"><div class="field">Category</div><input type="text" name="category"></div>
         <div class="row"><input type="submit" value="Submit &#8682;"></div>
     </form>
-    <h2>Your Categories:</h3>
+    <h3>Your Categories:</h3>
     {{range .User.Categories}}
         <i class="tag" href="/search?q=tag:{{.}}">{{.}}
             <form action="/user/removecategory" method="POST" style="margin: 0px;">
