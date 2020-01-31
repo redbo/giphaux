@@ -233,6 +233,32 @@ func TestUserFavorites(t *testing.T) {
 	require.Equal(t, http.StatusSeeOther, w.Code)
 }
 
+func TestUserUploads(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ds := NewMockDataStore(ctrl)
+	srv := server{ds: ds, queryLimit: 10, templates: &templateCapture{}}
+	r := httptest.NewRequest("GET", "/user/uploads", bytes.NewBuffer([]byte("")))
+	user := shared.User{Username: "redbo", APIKey: "something", Password: "something", Cookie: "something", Categories: nil}
+	w := httptest.NewRecorder()
+	ds.EXPECT().UserUploads(gomock.Eq("redbo"), gomock.Eq(12), gomock.Eq(0)).Return([]*shared.GIF{}, 0, nil)
+	srv.userUploads(w, r.WithContext(context.WithValue(r.Context(), userKey, &user)))
+	require.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestUserFavoritesList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ds := NewMockDataStore(ctrl)
+	srv := server{ds: ds, queryLimit: 10, templates: &templateCapture{}}
+	r := httptest.NewRequest("GET", "/user/favorites", bytes.NewBuffer([]byte("")))
+	user := shared.User{Username: "redbo", APIKey: "something", Password: "something", Cookie: "something", Categories: nil}
+	w := httptest.NewRecorder()
+	ds.EXPECT().UserFavorites(gomock.Eq("redbo"), gomock.Eq(12), gomock.Eq(0)).Return([]*shared.GIF{}, 0, nil)
+	srv.userFavorites(w, r.WithContext(context.WithValue(r.Context(), userKey, &user)))
+	require.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestUserDelete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -314,9 +340,13 @@ func TestAuthorization(t *testing.T) {
 }
 
 func TestWebIndex(t *testing.T) {
-	srv := server{templates: &templateCapture{}}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	ds := NewMockDataStore(ctrl)
+	srv := server{templates: &templateCapture{}, ds: ds}
 	r := httptest.NewRequest("GET", "/", bytes.NewBuffer([]byte{}))
 	w := httptest.NewRecorder()
+	ds.EXPECT().Frontpage().Return(&shared.FrontPageData{}, nil)
 	srv.frontPage(w, r)
 	require.Equal(t, http.StatusOK, w.Code)
 }
