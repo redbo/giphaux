@@ -1,0 +1,11 @@
+{{template "header.tmpl" .}}
+
+    <h2>Uploads: {{.Data.Start}}-{{.Data.NextOffset}} of {{.Data.TotalResults}} gifs</h2>
+
+    {{template "pages.tmpl" .Data}}
+
+    {{template "showgifs.tmpl" .Data.Gifs}}
+
+    <div style="clear: both;"></div>
+
+{{template "footer.tmpl" .}}
