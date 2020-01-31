@@ -35,7 +35,7 @@ func main() {
 		config.Database = filepath.Join(usr.HomeDir, "giphaux-database")
 	}
 	if _, err := os.Stat(config.Database); err != nil && os.IsNotExist(err) {
-		if err := sqlite.InitDatabase(config, logger); err != nil {
+		if _, err := sqlite.InitDatabase(config, logger); err != nil {
 			logger.Fatal("Error creating database", zap.Error(err))
 		}
 	}

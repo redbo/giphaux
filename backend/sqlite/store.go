@@ -463,7 +463,7 @@ func (s *sqlDataStore) AddGIF(username, caption string, tags, cats []string, sou
 		}
 		if len(cats) != 0 {
 			categories := []Category{}
-			if err := s.db.Table("categories").Where("user_id = ?", userID).Where("Title in (?)", cats).Scan(&categories).Error; err != nil {
+			if err := tx.Model(&Category{}).Where("user_id = ?", userID).Where("title in (?)", cats).Scan(&categories).Error; err != nil {
 				return fmt.Errorf("Unable to load categories: %w", err)
 			}
 			for _, cat := range categories {
@@ -551,10 +551,10 @@ func OpenStore(settings *shared.Configuration, logger *zap.Logger) (shared.DataS
 }
 
 // InitDatabase creates a new database.
-func InitDatabase(settings *shared.Configuration, logger *zap.Logger) error {
+func InitDatabase(settings *shared.Configuration, logger *zap.Logger) (shared.DataStore, error) {
 	db, err := gorm.Open("sqlite3", settings.Database)
 	if err != nil {
-		return fmt.Errorf("Error opening database: %w", err)
+		return nil, fmt.Errorf("Error opening database: %w", err)
 	}
 	if settings.Verbose {
 		db.LogMode(true)
@@ -563,7 +563,7 @@ func InitDatabase(settings *shared.Configuration, logger *zap.Logger) error {
 
 	// Have gorm automatically create these tables.
 	if err := db.AutoMigrate(&User{}, &GIF{}, &Category{}, &Favorite{}, &CategorizedFavorite{}, &GIFData{}, &Tag{}).Error; err != nil {
-		return fmt.Errorf("Error auto creating tables: %w", err)
+		return nil, fmt.Errorf("Error auto creating tables: %w", err)
 	}
 
 	// Manually create the text search table and triggers to update it because gorm doesn't know how to do any of that.
@@ -607,8 +607,8 @@ func InitDatabase(settings *shared.Configuration, logger *zap.Logger) error {
 	}
 	for _, cmd := range cmds {
 		if err := db.Exec(cmd).Error; err != nil {
-			return fmt.Errorf("Error executing sql: %w", err)
+			return nil, fmt.Errorf("Error executing sql: %w", err)
 		}
 	}
-	return nil
+	return &sqlDataStore{db: db, domain: settings.DomainName}, nil
 }

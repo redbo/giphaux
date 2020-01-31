@@ -180,7 +180,9 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger, ds shared.Dat
 	r.HandleFunc("/embed/{id:[a-zA-Z0-9]+}", s.rawGif) // this could be better.
 	r.HandleFunc("/still/{id:[a-zA-Z0-9]+}.gif", s.stillGif)
 	r.HandleFunc("/search", s.search)
-	r.HandleFunc("/analytics", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }) // TODO: sell out our users
+	r.HandleFunc("/analytics", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200) // TODO: sell out our users as quickly as possible
+	})
 
 	// Routes for API - api_key param must be verified.
 	apiAuthed := r.PathPrefix("/v1").Subrouter()
