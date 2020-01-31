@@ -329,6 +329,22 @@ func (mr *MockDataStoreMockRecorder) UpdateCategories(arg0, arg1, arg2 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCategories", reflect.TypeOf((*MockDataStore)(nil).UpdateCategories), arg0, arg1, arg2)
 }
 
+// UserFavorites mocks base method
+func (m *MockDataStore) UserFavorites(arg0 string, arg1, arg2 int) ([]*shared.GIF, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserFavorites", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*shared.GIF)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// UserFavorites indicates an expected call of UserFavorites
+func (mr *MockDataStoreMockRecorder) UserFavorites(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserFavorites", reflect.TypeOf((*MockDataStore)(nil).UserFavorites), arg0, arg1, arg2)
+}
+
 // UserFrontpage mocks base method
 func (m *MockDataStore) UserFrontpage(arg0 string) (*shared.FrontPageData, error) {
 	m.ctrl.T.Helper()

@@ -389,6 +389,28 @@ func (s *sqlDataStore) UserUploads(username string, limit, off int) ([]*shared.G
 	return rgifs, documentCount.Count, nil
 }
 
+func (s *sqlDataStore) UserFavorites(username string, limit, off int) ([]*shared.GIF, int, error) {
+	userID, err := usernameToID(s.db, username)
+	if err != nil {
+		return nil, 0, fmt.Errorf("Unable to find user: %w", err)
+	}
+	documentCount := struct{ Count int }{0}
+	if err := s.db.Table("favorites").Select("COUNT(*) AS count").Where("user_id = ?", userID).Scan(&documentCount).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting uploads: %w", err)
+	}
+	gifs := []GIF{}
+	if err := s.db.Table("gifs").Joins("JOIN favorites").Select("gifs.*").Limit(limit).Offset(off).
+		Where("favorites.gif_id = gifs.id").Where("favorites.user_id = ?", userID).
+		Order("gifs.id DESC").Scan(&gifs).Error; err != nil {
+		return nil, 0, fmt.Errorf("Error getting uploads: %w", err)
+	}
+	rgifs := make([]*shared.GIF, 0)
+	for _, gif := range gifs {
+		rgifs = append(rgifs, s.gifToGIF(&gif))
+	}
+	return rgifs, documentCount.Count, nil
+}
+
 // Trending returns the most recent trending gifs.
 func (s *sqlDataStore) Trending(limit int, off int, rating string) ([]*shared.GIF, int, error) {
 	documentCount := struct{ Count int }{0}

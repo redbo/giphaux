@@ -200,6 +200,7 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger, ds shared.Dat
 	webAuthed := r.PathPrefix("/user").Subrouter()
 	webAuthed.HandleFunc("/", s.userIndex)
 	webAuthed.HandleFunc("/uploads", s.userUploads)
+	webAuthed.HandleFunc("/favorites", s.userFavorites)
 	webAuthed.HandleFunc("/upload", s.userUpload).Methods("POST")
 	webAuthed.HandleFunc("/delete", s.userDelete).Methods("POST")
 	webAuthed.HandleFunc("/favorite", s.userFavorite).Methods("POST")

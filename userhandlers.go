@@ -34,7 +34,7 @@ func (s *server) userUploads(w http.ResponseWriter, r *http.Request) {
 	limit := 12
 	gifs, totalresults, err := s.ds.UserUploads(user.Username, limit, offset)
 	if err != nil {
-		s.error(w, r, http.StatusNotFound, "Unable to find that image.")
+		s.error(w, r, http.StatusInternalServerError, "Unable to find that image.")
 		return
 	}
 	data := map[string]interface{}{ // build a datastructure to pass to the template
@@ -47,7 +47,33 @@ func (s *server) userUploads(w http.ResponseWriter, r *http.Request) {
 		"Limit":        limit,
 		"Start":        offset + 1,
 	}
-	s.template(w, r, "search.tmpl", data)
+	s.template(w, r, "useruploads.tmpl", data)
+}
+
+// search is the HTML page that displays search results for a given query.
+func (s *server) userFavorites(w http.ResponseWriter, r *http.Request) {
+	user := getUser(r.Context())
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+	limit := 12
+	gifs, totalresults, err := s.ds.UserFavorites(user.Username, limit, offset)
+	if err != nil {
+		s.error(w, r, http.StatusInternalServerError, "Unable to load images.")
+		return
+	}
+	data := map[string]interface{}{ // build a datastructure to pass to the template
+		"Gifs":         gifs,
+		"Gifcount":     len(gifs),
+		"TotalResults": totalresults,
+		"PrevOffset":   offset - limit,
+		"NextOffset":   offset + len(gifs),
+		"Offset":       offset,
+		"Limit":        limit,
+		"Start":        offset + 1,
+	}
+	s.template(w, r, "favorites.tmpl", data)
 }
 
 // userAddCategory is the handler for a user adding a category.

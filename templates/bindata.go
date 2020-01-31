@@ -3,6 +3,7 @@
 // .gitattributes
 // bindata.go
 // error.tmpl
+// favorites.tmpl
 // footer.tmpl
 // gif.tmpl
 // header.tmpl
@@ -115,7 +116,7 @@ func bindataGo() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "bindata.go", size: 0, mode: os.FileMode(438), modTime: time.Unix(1580507095, 0)}
+	info := bindataFileInfo{name: "bindata.go", size: 0, mode: os.FileMode(438), modTime: time.Unix(1580507618, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -136,6 +137,26 @@ func errorTmpl() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "error.tmpl", size: 111, mode: os.FileMode(438), modTime: time.Unix(1580482281, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _favoritesTmpl = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x54\x8f\xc1\x4a\xc5\x30\x10\x45\xf7\xf9\x8a\x21\x7b\xf3\xe0\x2d\x6b\xcd\x4a\x74\xa7\xa0\xfe\xc0\x68\x27\x4d\x20\x25\x25\x33\x56\x25\xcc\xbf\x4b\x91\x96\xb8\x1c\x38\x73\xee\xbd\xad\x09\x2d\x6b\x46\x21\xb0\x91\x70\xa2\xea\x64\x59\xb3\x05\xa7\x6a\x0c\x00\xc0\x18\xaf\xfe\x01\xb7\x52\x93\x10\x0f\xd0\x9a\xbb\x47\x41\xf7\x2a\x58\x45\xf5\xe6\xb8\x9f\xe8\x5b\x9e\x43\x60\x12\x55\x28\xe1\xe4\xde\x8a\x60\x7e\x21\xfe\xcc\xc2\xaa\x30\xa7\xc0\xe3\x25\x5e\xfd\x9f\xbc\x8f\x5f\x71\x26\x3e\xd2\xf7\xdf\xa3\x41\x0f\x71\x2c\x5f\xbb\xa3\xe7\xdc\x63\x0a\x7c\xd6\x9d\xd2\x06\x2c\x3f\x99\xee\xec\x47\x26\xac\x03\xbc\x17\x89\xb7\xd6\x8f\x97\x29\x6d\xde\x98\x5e\x17\x4a\x91\x7f\x93\x7f\x03\x00\x00\xff\xff\xe9\xba\x7b\xbc\x10\x01\x00\x00")
+
+func favoritesTmplBytes() ([]byte, error) {
+	return bindataRead(
+		_favoritesTmpl,
+		"favorites.tmpl",
+	)
+}
+
+func favoritesTmpl() (*asset, error) {
+	bytes, err := favoritesTmplBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "favorites.tmpl", size: 272, mode: os.FileMode(438), modTime: time.Unix(1580507411, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -395,6 +416,7 @@ var _bindata = map[string]func() (*asset, error){
 	".gitattributes": Gitattributes,
 	"bindata.go": bindataGo,
 	"error.tmpl": errorTmpl,
+	"favorites.tmpl": favoritesTmpl,
 	"footer.tmpl": footerTmpl,
 	"gif.tmpl": gifTmpl,
 	"header.tmpl": headerTmpl,
@@ -450,6 +472,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	".gitattributes": &bintree{Gitattributes, map[string]*bintree{}},
 	"bindata.go": &bintree{bindataGo, map[string]*bintree{}},
 	"error.tmpl": &bintree{errorTmpl, map[string]*bintree{}},
+	"favorites.tmpl": &bintree{favoritesTmpl, map[string]*bintree{}},
 	"footer.tmpl": &bintree{footerTmpl, map[string]*bintree{}},
 	"gif.tmpl": &bintree{gifTmpl, map[string]*bintree{}},
 	"header.tmpl": &bintree{headerTmpl, map[string]*bintree{}},

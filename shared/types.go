@@ -15,6 +15,7 @@ type DataStore interface {
 	UserFrontpage(username string) (*FrontPageData, error)
 	Frontpage() (*FrontPageData, error)
 	UserUploads(username string, limit, offset int) ([]*GIF, int, error)
+	UserFavorites(username string, limit, offset int) ([]*GIF, int, error)
 
 	AddGIF(username string, caption string, tags []string, cats []string, sourceURL string,
 		rating string, width, height, size, frames int, filedata []byte) (*GIF, error)
