@@ -199,6 +199,7 @@ func NewServer(settings *shared.Configuration, logger *zap.Logger, ds shared.Dat
 	// Routes for authenticated web pages - cookie must be verified.
 	webAuthed := r.PathPrefix("/user").Subrouter()
 	webAuthed.HandleFunc("/", s.userIndex)
+	webAuthed.HandleFunc("/category/{category}", s.userCategory)
 	webAuthed.HandleFunc("/uploads", s.userUploads)
 	webAuthed.HandleFunc("/favorites", s.userFavorites)
 	webAuthed.HandleFunc("/upload", s.userUpload).Methods("POST")

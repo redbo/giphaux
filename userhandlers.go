@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/redbo/giphaux/shared"
 	"go.uber.org/zap"
 )
@@ -22,6 +23,39 @@ func (s *server) userIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.template(w, r, "user.tmpl", fp)
+}
+
+// userCategory is a page that shows the user's contents for a category.
+func (s *server) userCategory(w http.ResponseWriter, r *http.Request) {
+	user := getUser(r.Context())
+	category := mux.Vars(r)["category"]
+	category, err := shared.NormalizeTag(category)
+	if err != nil {
+		s.error(w, r, http.StatusBadRequest, "Bad category name")
+		return
+	}
+	offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+	if err != nil || offset < 0 {
+		offset = 0
+	}
+	limit := 12
+	gifs, totalresults, err := s.ds.UserCategory(user.Username, category, limit, offset)
+	if err != nil {
+		s.error(w, r, http.StatusBadRequest, "Error fetching category")
+		return
+	}
+	data := map[string]interface{}{ // build a datastructure to pass to the template
+		"Category":     category,
+		"Gifs":         gifs,
+		"Gifcount":     len(gifs),
+		"TotalResults": totalresults,
+		"PrevOffset":   offset - limit,
+		"NextOffset":   offset + len(gifs),
+		"Offset":       offset,
+		"Limit":        limit,
+		"Start":        offset + 1,
+	}
+	s.template(w, r, "usercategory.tmpl", data)
 }
 
 // search is the HTML page that displays search results for a given query.

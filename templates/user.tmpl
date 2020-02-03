@@ -46,7 +46,7 @@
             {{else}}
                 {{if eq . "Favorites"}}
                 {{else}}
-                    <h3><a href="/category/{{.}}">{{.}}</a></h3>
+                    <h3><a href="/user/category/{{.}}">{{.}}</a></h3>
                     {{template "showgifs.tmpl" $value}}
                 {{end}}
             {{end}}
