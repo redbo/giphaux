@@ -6,12 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/redbo/giphaux/shared"
-	gormzap "github.com/wantedly/gorm-zap"
-	"go.uber.org/zap"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // anonymous import just makes the sqlite driver available to gorm
+	"github.com/redbo/giphaux/shared"
+	"github.com/wantedly/gorm-zap"
+	"go.uber.org/zap"
 )
 
 // This uses gorm, which I wanted to get some experience with.

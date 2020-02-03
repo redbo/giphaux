@@ -1,5 +1,9 @@
 <div>
-    <a href="?offset=0&q={{.Query}}">Start</a>
+    {{if gt .Offset 0}}
+    <a href="?offset=0{{if .Query}}&q={{.Query}}{{end}}">Start</a>
     <a href="?offset={{.PrevOffset}}{{if .Query}}&q={{.Query}}{{end}}">Prev</a>
+    {{end}}
+    {{if gt .NextOffset .TotalResults}}
     <a href="?offset={{.NextOffset}}{{if .Query}}&q={{.Query}}{{end}}">Next</a>
+    {{end}}
 </div>

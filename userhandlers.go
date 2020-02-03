@@ -47,7 +47,7 @@ func (s *server) userCategory(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{ // build a datastructure to pass to the template
 		"Category":     category,
 		"Gifs":         gifs,
-		"Gifcount":     len(gifs),
+		"Gifcount":     len(gifs), // cramming a lot of pagination data in there in case the template ever uses it.
 		"TotalResults": totalresults,
 		"PrevOffset":   offset - limit,
 		"NextOffset":   offset + len(gifs),
