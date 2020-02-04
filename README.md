@@ -17,12 +17,7 @@ First have a [go development environment](https://golang.org/doc/install) config
 $ go install github.com/redbo/giphaux/...
 # ... some time will pass ...
 ```
-Then you can use giphaux to create a `~/.giphaux` directory containing a default configuration file and an empty database.
-```sh
-$ giphaux init
-# ... spammy sql stuff ...
-```
-Then you can launch the giphaux server, which listens on `localhost:8080` by default.
+Then you can launch the giphaux server, which will create a new empty database in ~/giphy-database and listen on `localhost:8080` by default.
 ```sh
 $ giphaux
 # ... logs ...
