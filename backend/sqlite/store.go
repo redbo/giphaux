@@ -175,7 +175,7 @@ func (s *sqlDataStore) GetUserByCookie(cookie string) (*shared.User, error) {
 	return userToUser(&dbuser), nil
 }
 
-// UserFrontpage returns the lists of gifs and things needed to show the user's home page.
+// Frontpage returns the lists of gifs and things needed to show the front index page.
 func (s *sqlDataStore) Frontpage() (*shared.FrontPageData, error) {
 	fp := &shared.FrontPageData{Categories: make(map[string][]*shared.GIF)}
 	fp.Categories["Uploads"] = make([]*shared.GIF, 0)
@@ -214,7 +214,7 @@ func (s *sqlDataStore) UserFrontpage(username string) (*shared.FrontPageData, er
 	addResults("Uploads", gifs)
 
 	gifs = gifs[:]
-	if err := s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE g.user_id=? ORDER BY f.id DESC LIMIT 3", userID).Scan(&gifs).Error; err != nil {
+	if err := s.db.Raw("SELECT g.* FROM gifs g JOIN favorites f ON f.gif_id=g.id WHERE f.user_id=? ORDER BY f.id DESC LIMIT 3", userID).Scan(&gifs).Error; err != nil {
 		return nil, fmt.Errorf("Error getting favorites: %w", err)
 	}
 	addResults("Favorites", gifs)
